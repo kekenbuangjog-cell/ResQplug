@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- Minimalist 8-Bit Splash Screen: Searching for ResQPlug Device -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_black"
+    tools:context=".MainActivity">
+
+    <!-- Starfield Canvas (drawn in code) -->
+    <com.example.resqplug.ui.StarfieldView
+        android:id="@+id/starfieldView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Center Content -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Blinking Emoticon -->
+        <TextView
+            android:id="@+id/tvEmoticon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:text="◈━━━━━━━━━◈"
+            android:textColor="@color/accent_green"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Animated Searching Status -->
+        <TextView
+            android:id="@+id/tvSearchingStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/pixel_status_box"
+            android:fontFamily="monospace"
+            android:text="@string/splash_searching"
+            android:textColor="@color/accent_green"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <!-- Device ID (hidden until connected) -->
+        <TextView
+            android:id="@+id/tvDeviceId"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:fontFamily="monospace"
+            android:textColor="@color/signal_cyan"
+            android:textSize="8sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</FrameLayout>

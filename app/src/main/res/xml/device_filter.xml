@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ESP32 native USB CDC (ESP32-S2/S3/C3 built-in USB) -->
+    <usb-device vendor-id="12346" product-id="2" />
+    <usb-device vendor-id="12346" product-id="4097" />
+
+    <!-- CP2102 USB-to-UART bridge (common on ESP32 DevKit boards) -->
+    <usb-device vendor-id="4292" product-id="60000" />
+
+    <!-- CH340 USB-to-UART bridge (budget ESP32 boards) -->
+    <usb-device vendor-id="6790" product-id="30083" />
+
+    <!-- CH9102 USB-to-UART bridge -->
+    <usb-device vendor-id="6790" product-id="21972" />
+
+    <!-- FTDI FT232R (some ESP32 boards) -->
+    <usb-device vendor-id="1027" product-id="24577" />
+</resources>

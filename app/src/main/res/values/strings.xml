@@ -1,0 +1,24 @@
+﻿<resources>
+    <string name="app_name">ResQPlug</string>
+
+    <!-- Splash Strings -->
+    <string name="splash_searching">[ SEARCHING FOR RESQPLUG DEVICE ]</string>
+    <string name="splash_connecting">[ CONNECTING TO RESQPLUG DEVICE ]</string>
+    <string name="splash_connected">[ RESQPLUG CONNECTED : MESH READY ]</string>
+    <string name="splash_device_id">DEVICE ID: %1$s</string>
+
+    <!-- Dashboard Strings -->
+    <string name="dash_title">RESQPLUG</string>
+    <string name="dash_mesh_network">MESH NETWORK</string>
+    <string name="dash_nodes_active">%1$d NODES ACTIVE</string>
+    <string name="dash_signal">SIGNAL</string>
+    <string name="dash_message_queue">MESSAGE QUEUE</string>
+    <string name="dash_sos">SOS</string>
+    <string name="dash_evac">EVAC</string>
+    <string name="dash_status">STATUS</string>
+    <string name="dash_btn_sos">[ SOS ]</string>
+    <string name="dash_btn_status">[ STATUS ]</string>
+    <string name="dash_btn_evac">[ EVAC ]</string>
+    <string name="dash_sent">SENT</string>
+    <string name="dash_scene_progress">SCENE %1$d of 11</string>
+</resources>

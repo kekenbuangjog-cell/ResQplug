@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- res/values/colors.xml - Derived from DESIGN_STYLE_GUIDE.md -->
+<resources>
+    <!-- Base -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Primary UI Palette -->
+    <color name="bg_black">#FF0A0A0A</color>
+    <color name="bg_navy">#FF1A1A2E</color>
+    <color name="accent_green">#FF00FF88</color>
+    <color name="accent_green_alt">#FF2ECC71</color>
+    <color name="text_white">#FFFFFFFF</color>
+    <color name="text_gray">#FF7F8C8D</color>
+    <color name="border_dark">#FF333333</color>
+
+    <!-- Status / Alert Palette -->
+    <color name="alert_red">#FFE74C3C</color>
+    <color name="alert_amber">#FFF39C12</color>
+    <color name="status_ok">#FF2ECC71</color>
+    <color name="signal_cyan">#FF00FFFF</color>
+    <color name="packet_green">#FF00FF88</color>
+</resources>
