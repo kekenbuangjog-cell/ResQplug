@@ -1,4 +1,4 @@
-﻿<resources>
+<resources>
     <string name="app_name">ResQPlug</string>
 
     <!-- Splash Strings -->
@@ -7,18 +7,49 @@
     <string name="splash_connected">[ RESQPLUG CONNECTED : MESH READY ]</string>
     <string name="splash_device_id">DEVICE ID: %1$s</string>
 
-    <!-- Dashboard Strings -->
-    <string name="dash_title">RESQPLUG</string>
-    <string name="dash_mesh_network">MESH NETWORK</string>
-    <string name="dash_nodes_active">%1$d NODES ACTIVE</string>
-    <string name="dash_signal">SIGNAL</string>
-    <string name="dash_message_queue">MESSAGE QUEUE</string>
-    <string name="dash_sos">SOS</string>
-    <string name="dash_evac">EVAC</string>
-    <string name="dash_status">STATUS</string>
+    <!-- Dashboard Compose & Actions -->
+    <string name="dash_compose_hint">Type message...</string>
+    <string name="dash_send">SEND</string>
     <string name="dash_btn_sos">[ SOS ]</string>
     <string name="dash_btn_status">[ STATUS ]</string>
     <string name="dash_btn_evac">[ EVAC ]</string>
-    <string name="dash_sent">SENT</string>
-    <string name="dash_scene_progress">SCENE %1$d of 11</string>
+
+    <!-- Dashboard Screen -->
+    <string name="dash_header_title">RESQPLUG DASHBOARD</string>
+    <string name="dash_battery_icon">🔋</string>
+    <string name="dash_battery_pct">%1$d%%</string>
+    <string name="dash_node_id">Node ID: %1$s (You)</string>
+    <string name="dash_rf_status">RF: 915MHz ACTIVE</string>
+    <string name="dash_sos_button">🚨  TAP FOR SOS REQUEST</string>
+    <string name="dash_section_bulletin">LATEST OFFICIAL DISASTER BULLETIN</string>
+    <string name="dash_bulletin_source">🛡️ [BRGY BANILAD RESCUE COMMAND]</string>
+    <string name="dash_bulletin_text">Evacuation center open at Banilad Gym.\nMedical team on standby at Sector 2.</string>
+    <string name="dash_bulletin_updated">Updated: 12 mins ago</string>
+    <string name="dash_section_mesh">LOCAL MESH HEALTH SUMMARY</string>
+    <string name="dash_mesh_active">📡 Active Nodes in Range: %1$d reachable</string>
+    <string name="dash_mesh_nearest">🟢 Nearest Link: %1$d dBm (%2$s)</string>
+    <string name="dash_mesh_farthest">🔁 Furthest Reach: %1$d Hops away (~%2$.1f km)</string>
+    <string name="dash_nav_dashboard">🏠 Dashboard</string>
+    <string name="dash_nav_messages">💬 Messages</string>
+    <string name="dash_nav_settings">⚙ Settings</string>
+
+    <!-- Name Dialog -->
+    <string name="dialog_connected_title">RESQPLUG CONNECTED!</string>
+    <string name="dialog_connected_msg">You are connected to ResQplug.</string>
+    <string name="dialog_name_label">Enter your name:</string>
+    <string name="dialog_name_hint">Your name…</string>
+    <string name="dialog_ok">OK</string>
+
+    <!-- Settings Strings -->
+    <string name="settings_title">SYSTEM CONFIGURATION</string>
+    <string name="settings_node_info">NODE IDENTITY</string>
+    <string name="settings_node_name">Callsign / Name: %1$s</string>
+    <string name="settings_device_id">Dongle UID: %1$s</string>
+    <string name="settings_rf_config">LORA RF PARAMETERS</string>
+    <string name="settings_frequency">Frequency: 915.00 MHz (ISM)</string>
+    <string name="settings_tx_power">Tx Power: +20 dBm (Max)</string>
+    <string name="settings_bandwidth">Bandwidth: 125 kHz / SF7 / CR 4/5</string>
+    <string name="settings_usb_diag">HARDWARE DIAGNOSTICS</string>
+    <string name="settings_usb_status">USB-OTG Status: LINKED (115200 Baud)</string>
+    <string name="settings_mesh_status">Mesh Routing: Dynamic Hop Active</string>
 </resources>

@@ -1,24 +1,26 @@
-﻿package com.example.resqplug
+package com.example.resqplug
 
 import android.content.Intent
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.IntentCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.resqplug.ui.StarfieldView
 import com.example.resqplug.usb.UsbConnectionReceiver
 import com.example.resqplug.usb.UsbDeviceHelper
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -26,7 +28,7 @@ import kotlinx.coroutines.launch
 class MainActivity : AppCompatActivity() {
 
     private val frameDurationMs = 125L // 8 FPS = 125ms per frame step
-    private val loadingDelayMs = 10000L // 10s simulated connection delay
+    private val loadingDelayMs = 2000L // 2s simulated connecting sequence
 
     private lateinit var usbHelper: UsbDeviceHelper
     private var usbReceiver: UsbConnectionReceiver? = null
@@ -65,7 +67,10 @@ class MainActivity : AppCompatActivity() {
         // Handle USB intent from manifest auto-launch
         handleUsbIntent(intent)
 
-        // Tap to simulate device detection (simulation mode)
+        // Auto-Simulate Connection after 2.5s if no physical device is detected
+        startAutoSimulationSearch(tvSearchingStatus, tvDeviceId)
+
+        // Manual tap to immediately simulate device detection (simulation mode skip)
         tvSearchingStatus.setOnClickListener {
             if (!isDeviceConnected && !isConnecting) {
                 val simId = "RQP-SIM-${(1000..9999).random()}"
@@ -105,9 +110,23 @@ class MainActivity : AppCompatActivity() {
         handleUsbIntent(intent)
     }
 
+    private fun startAutoSimulationSearch(tvSearchingStatus: TextView, tvDeviceId: TextView) {
+        lifecycleScope.launch {
+            delay(2500L)
+            if (!isDeviceConnected && !isConnecting && !isFinishing) {
+                val simId = "RQP-SIM-${(1000..9999).random()}"
+                startConnectionSequence(simId, tvSearchingStatus, tvDeviceId)
+            }
+        }
+    }
+
     private fun handleUsbIntent(intent: Intent?) {
         if (intent?.action == UsbManager.ACTION_USB_DEVICE_ATTACHED) {
-            val device: UsbDevice? = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
+            val device: UsbDevice? = IntentCompat.getParcelableExtra(
+                intent,
+                UsbManager.EXTRA_DEVICE,
+                UsbDevice::class.java
+            )
             device?.let { onUsbDeviceAttached(it) }
         }
     }
@@ -134,6 +153,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun onUsbDeviceDetached(device: UsbDevice) {
         if (!isDeviceConnected) return
+        if (connectedDeviceId.isNotEmpty() && !connectedDeviceId.startsWith("RQP-SIM-")) {
+            val detachedId = usbHelper.getUniqueDeviceId(device)
+            if (detachedId != connectedDeviceId) return
+        }
 
         val tvSearchingStatus = findViewById<TextView>(R.id.tvSearchingStatus)
         val tvDeviceId = findViewById<TextView>(R.id.tvDeviceId)
@@ -155,6 +178,9 @@ class MainActivity : AppCompatActivity() {
     ) {
         isConnecting = true
         connectedDeviceId = deviceId
+
+        // Register device to Firebase
+        registerDeviceToFirebase(deviceId)
 
         lifecycleScope.launch {
             // Phase 1: Show "CONNECTING..." with amber text
@@ -255,5 +281,22 @@ class MainActivity : AppCompatActivity() {
                 starfieldView.tick()
             }
         }
+    }
+
+    private fun registerDeviceToFirebase(deviceId: String) {
+        val db = FirebaseFirestore.getInstance()
+        val device = hashMapOf(
+            "deviceId" to deviceId,
+            "userName" to "",
+            "status" to "active",
+            "platform" to "android",
+            "timestamp" to FieldValue.serverTimestamp(),
+            "last_seen" to FieldValue.serverTimestamp()
+        )
+        db.collection("active_devices")
+            .document(deviceId)
+            .set(device)
+            .addOnSuccessListener { Log.d("Firebase", "Registered device: $deviceId") }
+            .addOnFailureListener { Log.e("Firebase", "Registration failed", it) }
     }
 }

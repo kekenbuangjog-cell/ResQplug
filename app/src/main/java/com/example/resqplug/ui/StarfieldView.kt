@@ -41,7 +41,6 @@ class StarfieldView @JvmOverloads constructor(
         var y: Float,
         val speedX: Float,
         val speedY: Float,
-        val length: Float,
         var alpha: Int,
         var life: Int,
         val maxLife: Int
@@ -271,7 +270,6 @@ class StarfieldView @JvmOverloads constructor(
             y = startY,
             speedX = speed * kotlin.math.cos(angle.toDouble()).toFloat(),
             speedY = speed * kotlin.math.sin(angle.toDouble()).toFloat(),
-            length = 6f + rng.nextFloat() * 4f,
             alpha = 255,
             life = 12 + rng.nextInt(8),
             maxLife = 20

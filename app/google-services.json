@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "277925379193",
+    "project_id": "resqplug-248a5",
+    "storage_bucket": "resqplug-248a5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:277925379193:android:a1347eecb2466711f228a8",
+        "android_client_info": {
+          "package_name": "com.example.resqplug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCSLW3R1dKmaqNeDb3-BV4fUYyTHvk0QA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

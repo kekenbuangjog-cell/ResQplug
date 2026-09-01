@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 8-Bit Dashboard: Mesh Network + Priority Queue + Actions -->
+<!-- 8-Bit Messenger Dashboard: Activity Host with Fragment Container & Bottom Navigation -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/dashMain"
@@ -14,366 +14,214 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Dashboard Content -->
+    <!-- Dashboard Content Container -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="12dp">
+        android:orientation="vertical">
 
-        <!-- Header Bar -->
+        <!-- ========== HEADER BAR ========== -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/bg_navy"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="8dp">
+            android:paddingStart="12dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="12dp">
 
             <TextView
+                android:id="@+id/tvDashTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:fontFamily="monospace"
-                android:text="◈━━━◈  RESQPLUG"
+                android:text="@string/dash_header_title"
                 android:textColor="@color/accent_green"
-                android:textSize="12sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/tvDashDeviceId"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:textColor="@color/signal_cyan"
-                android:textSize="7sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- Spacer -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="8dp" />
-
-        <!-- Mesh Network Panel -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/pixel_status_box"
-            android:orientation="vertical"
-            android:padding="10dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:text="@string/dash_mesh_network"
-                android:textColor="@color/accent_green"
-                android:textSize="8sp"
-                android:textStyle="bold" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="6dp"
-                android:background="@color/border_dark" />
-
-            <!-- Node Count + Signal -->
+            <!-- Battery -->
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <TextView
-                    android:id="@+id/tvNodeCount"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:fontFamily="monospace"
-                    android:textColor="@color/text_white"
-                    android:textSize="8sp"
-                    tools:text="1 NODES ACTIVE" />
-
-                <TextView
+                    android:id="@+id/tvBatteryIcon"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="monospace"
-                    android:text="@string/dash_signal"
+                    android:text="@string/dash_battery_icon"
+                    android:textColor="@color/text_white"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/tvBatteryPct"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:fontFamily="monospace"
                     android:textColor="@color/text_gray"
-                    android:textSize="7sp" />
-
-                <ProgressBar
-                    android:id="@+id/signalBar"
-                    style="@android:style/Widget.ProgressBar.Horizontal"
-                    android:layout_width="80dp"
-                    android:layout_height="10dp"
-                    android:layout_marginStart="6dp"
-                    android:max="100"
-                    android:progressDrawable="@drawable/progress_bar_retro"
-                    tools:progress="75" />
+                    android:textSize="12sp"
+                    tools:text="85%" />
             </LinearLayout>
 
-            <!-- Node Diagram -->
-            <TextView
-                android:id="@+id/tvNodeDiagram"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:fontFamily="monospace"
-                android:textColor="@color/accent_green"
-                android:textSize="7sp"
-                tools:text="● You  ──  ● Node-A" />
         </LinearLayout>
 
-        <!-- Spacer -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="8dp" />
-
-        <!-- Message Queue Panel -->
+        <!-- ========== NODE ID BAR ========== -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/pixel_status_box"
-            android:orientation="vertical"
-            android:padding="10dp">
+            android:background="@color/bg_black"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="6dp">
 
             <TextView
+                android:id="@+id/tvNodeId"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="monospace"
+                android:textColor="@color/text_white"
+                android:textSize="12sp"
+                tools:text="Node ID: #A12B (You)" />
+
+            <TextView
+                android:id="@+id/tvRfStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="monospace"
-                android:text="@string/dash_message_queue"
-                android:textColor="@color/accent_green"
-                android:textSize="8sp"
-                android:textStyle="bold" />
+                android:textColor="@color/text_gray"
+                android:textSize="10sp"
+                tools:text="RF: 915MHz ACTIVE" />
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="6dp"
-                android:background="@color/border_dark" />
-
-            <!-- SOS Row -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="50dp"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="monospace"
-                    android:text="SOS"
-                    android:textColor="@color/alert_red"
-                    android:textSize="8sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvSosCount"
-                    android:layout_width="30dp"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="monospace"
-                    android:textColor="@color/text_white"
-                    android:textSize="8sp"
-                    tools:text="[ 0 ]" />
-
-                <ProgressBar
-                    android:id="@+id/sosBar"
-                    style="@android:style/Widget.ProgressBar.Horizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="8dp"
-                    android:layout_weight="1"
-                    android:max="20"
-                    android:progressDrawable="@drawable/progress_bar_sos" />
-            </LinearLayout>
-
-            <!-- EVAC Row -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="50dp"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="monospace"
-                    android:text="EVAC"
-                    android:textColor="@color/alert_amber"
-                    android:textSize="8sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvEvacCount"
-                    android:layout_width="30dp"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="monospace"
-                    android:textColor="@color/text_white"
-                    android:textSize="8sp"
-                    tools:text="[ 0 ]" />
-
-                <ProgressBar
-                    android:id="@+id/evacBar"
-                    style="@android:style/Widget.ProgressBar.Horizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="8dp"
-                    android:layout_weight="1"
-                    android:max="20"
-                    android:progressDrawable="@drawable/progress_bar_evac" />
-            </LinearLayout>
-
-            <!-- STATUS Row -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="50dp"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="monospace"
-                    android:text="STATUS"
-                    android:textColor="@color/status_ok"
-                    android:textSize="8sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvStatusCount"
-                    android:layout_width="30dp"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="monospace"
-                    android:textColor="@color/text_white"
-                    android:textSize="8sp"
-                    tools:text="[ 0 ]" />
-
-                <ProgressBar
-                    android:id="@+id/statusBar"
-                    style="@android:style/Widget.ProgressBar.Horizontal"
-                    android:layout_width="0dp"
-                    android:layout_height="8dp"
-                    android:layout_weight="1"
-                    android:max="20"
-                    android:progressDrawable="@drawable/progress_bar_retro" />
-            </LinearLayout>
         </LinearLayout>
 
-        <!-- Spacer -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="8dp" />
-
-        <!-- Action Buttons -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/btnSos"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/pixel_button_sos"
-                android:fontFamily="monospace"
-                android:paddingStart="24dp"
-                android:paddingTop="10dp"
-                android:paddingEnd="24dp"
-                android:paddingBottom="10dp"
-                android:text="@string/dash_btn_sos"
-                android:textAllCaps="false"
-                android:textColor="@color/text_white"
-                android:textSize="9sp"
-                android:textStyle="bold" />
-
-            <View
-                android:layout_width="12dp"
-                android:layout_height="wrap_content" />
-
-            <Button
-                android:id="@+id/btnEvac"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/pixel_button_evac"
-                android:fontFamily="monospace"
-                android:paddingStart="18dp"
-                android:paddingTop="10dp"
-                android:paddingEnd="18dp"
-                android:paddingBottom="10dp"
-                android:text="@string/dash_btn_evac"
-                android:textAllCaps="false"
-                android:textColor="@color/text_white"
-                android:textSize="9sp"
-                android:textStyle="bold" />
-
-            <View
-                android:layout_width="12dp"
-                android:layout_height="wrap_content" />
-
-            <Button
-                android:id="@+id/btnStatus"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/pixel_button_status"
-                android:fontFamily="monospace"
-                android:paddingStart="18dp"
-                android:paddingTop="10dp"
-                android:paddingEnd="18dp"
-                android:paddingBottom="10dp"
-                android:text="@string/dash_btn_status"
-                android:textAllCaps="false"
-                android:textColor="@color/text_white"
-                android:textSize="9sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <!-- Spacer -->
-        <View
+        <!-- ========== FRAGMENT CONTAINER ========== -->
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/fragmentContainerView"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1" />
 
-        <!-- Bottom Bar: Scene Progress -->
+        <!-- ========== BOTTOM NAVIGATION BAR ========== -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:background="@color/bg_navy"
+            android:orientation="horizontal"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
 
-            <TextView
-                android:id="@+id/tvSceneProgress"
+            <!-- Dashboard Tab -->
+            <LinearLayout
+                android:id="@+id/nav_dashboard"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:fontFamily="monospace"
-                android:text="@string/dash_scene_progress"
-                android:textColor="@color/accent_green"
-                android:textSize="7sp" />
+                android:background="@drawable/pixel_nav_item"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
 
-            <ProgressBar
-                android:id="@+id/sceneProgressBar"
-                style="@android:style/Widget.ProgressBar.Horizontal"
-                android:layout_width="120dp"
-                android:layout_height="6dp"
-                android:max="11"
-                android:progress="1"
-                android:progressDrawable="@drawable/progress_bar_retro" />
+                <TextView
+                    android:id="@+id/tvNavDashboardIcon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:text="🏠"
+                    android:textColor="@color/accent_green"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/tvNavDashboardText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:fontFamily="monospace"
+                    android:text="Dashboard"
+                    android:textColor="@color/accent_green"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <!-- Messages Tab -->
+            <LinearLayout
+                android:id="@+id/nav_messages"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/pixel_nav_item"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
+
+                <TextView
+                    android:id="@+id/tvNavMessagesIcon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:text="💬"
+                    android:textColor="@color/text_gray"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/tvNavMessagesText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:fontFamily="monospace"
+                    android:text="Messages"
+                    android:textColor="@color/text_gray"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <!-- Settings Tab -->
+            <LinearLayout
+                android:id="@+id/nav_settings"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/pixel_nav_item"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
+
+                <TextView
+                    android:id="@+id/tvNavSettingsIcon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:text="⚙"
+                    android:textColor="@color/text_gray"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/tvNavSettingsText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:fontFamily="monospace"
+                    android:text="Settings"
+                    android:textColor="@color/text_gray"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
         </LinearLayout>
 
     </LinearLayout>
-
-    <!-- Fade Overlay (for transition) -->
-    <View
-        android:id="@+id/fadeOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/bg_black"
-        android:alpha="1.0" />
 
 </FrameLayout>
