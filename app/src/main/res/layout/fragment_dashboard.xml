@@ -138,6 +138,83 @@
 
         </LinearLayout>
 
+        <!-- ========== COMMANDER COMMAND & CONTROL (Shown only to Commander) ========== -->
+        <LinearLayout
+            android:id="@+id/layoutCommanderControls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- Spacer -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="16dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:text="🏛️ COMMANDER COMMAND &amp; CONTROL"
+                android:textColor="@color/alert_red"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/pixel_card"
+                android:orientation="vertical">
+
+                <!-- Silence Toggle -->
+                <Button
+                    android:id="@+id/btnToggleSilence"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:background="@drawable/btn_send_evac"
+                    android:fontFamily="monospace"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="[ ⚠️ TOGGLE MESH SILENCE MODE ]"
+                    android:textColor="@color/bg_navy"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <!-- Evacuation Order Trigger -->
+                <Button
+                    android:id="@+id/btnBroadcastEvacOrder"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/btn_send_sos"
+                    android:fontFamily="monospace"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="[ 🚨 BROADCAST MANDATORY EVAC ORDER ]"
+                    android:textColor="@color/text_white"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <!-- Compose / Publish Custom Bulletin -->
+                <Button
+                    android:id="@+id/btnComposeBulletin"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/btn_send_bulletin"
+                    android:fontFamily="monospace"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="[ 📢 COMPOSE OFFICIAL BULLETIN ]"
+                    android:textColor="@color/text_white"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
         <!-- Bottom spacer for scroll padding -->
         <View
             android:layout_width="match_parent"

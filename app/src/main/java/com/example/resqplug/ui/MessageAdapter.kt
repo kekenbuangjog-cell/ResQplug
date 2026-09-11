@@ -1,7 +1,5 @@
 package com.example.resqplug.ui
 
-import android.content.res.ColorStateList
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,6 +9,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.resqplug.R
 import com.example.resqplug.simulation.ChatMessage
 import com.example.resqplug.simulation.Priority
+
+import android.graphics.Color
+import com.example.resqplug.simulation.UserRole
 
 class MessageAdapter(private var messages: List<ChatMessage>) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -66,20 +67,31 @@ class MessageAdapter(private var messages: List<ChatMessage>) :
 
     class SentViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tvPriority: TextView = itemView.findViewById(R.id.tvPriority)
+        private val tvSentRoleBadge: TextView = itemView.findViewById(R.id.tvSentRoleBadge)
         private val tvMessage: TextView = itemView.findViewById(R.id.tvMessage)
         private val tvTime: TextView = itemView.findViewById(R.id.tvTime)
+        private val tvSentSender: TextView = itemView.findViewById(R.id.tvSentSender)
 
         fun bind(msg: ChatMessage) {
             tvPriority.text = "[ ${msg.priority.name} ]"
             tvPriority.setTextColor(getPriorityColor(itemView, msg.priority))
             tvMessage.text = "\"${msg.text}\""
             tvTime.text = msg.timestamp
+            tvSentSender.text = if (msg.sender.isNotEmpty() && msg.sender != "You") {
+                "${msg.sender.uppercase()} (YOU)"
+            } else {
+                "YOU"
+            }
+
+            // Role Badge Binding
+            bindRoleBadge(tvSentRoleBadge, msg.role)
         }
     }
 
     class ReceivedViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tvDot: TextView = itemView.findViewById(R.id.tvDot)
         private val tvSender: TextView = itemView.findViewById(R.id.tvSender)
+        private val tvReceivedRoleBadge: TextView = itemView.findViewById(R.id.tvReceivedRoleBadge)
         private val tvMessage: TextView = itemView.findViewById(R.id.tvMessage)
         private val tvTime: TextView = itemView.findViewById(R.id.tvTime)
 
@@ -89,6 +101,9 @@ class MessageAdapter(private var messages: List<ChatMessage>) :
             tvSender.setTextColor(msg.nodeColor)
             tvMessage.text = "\"${msg.text}\""
             tvTime.text = msg.timestamp
+
+            // Role Badge Binding
+            bindRoleBadge(tvReceivedRoleBadge, msg.role)
         }
     }
 
@@ -101,10 +116,29 @@ class MessageAdapter(private var messages: List<ChatMessage>) :
     }
 }
 
+private fun bindRoleBadge(tvBadge: TextView, role: UserRole) {
+    tvBadge.text = role.badgeText
+    when (role) {
+        UserRole.CITIZEN -> {
+            tvBadge.setTextColor(ContextCompat.getColor(tvBadge.context, R.color.accent_green))
+            tvBadge.setBackgroundResource(R.drawable.badge_role_citizen)
+        }
+        UserRole.RESPONDER -> {
+            tvBadge.setTextColor(ContextCompat.getColor(tvBadge.context, R.color.alert_amber))
+            tvBadge.setBackgroundResource(R.drawable.badge_role_responder)
+        }
+        UserRole.COMMANDER -> {
+            tvBadge.setTextColor(ContextCompat.getColor(tvBadge.context, R.color.alert_red))
+            tvBadge.setBackgroundResource(R.drawable.badge_role_commander)
+        }
+    }
+}
+
 private fun getPriorityColor(view: View, priority: Priority): Int {
     return when (priority) {
         Priority.SOS -> ContextCompat.getColor(view.context, R.color.alert_red)
         Priority.EVAC -> ContextCompat.getColor(view.context, R.color.alert_amber)
         Priority.STATUS -> ContextCompat.getColor(view.context, R.color.accent_green)
+        Priority.BULLETIN -> Color.parseColor("#9B59B6")
     }
 }

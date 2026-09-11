@@ -52,4 +52,15 @@
     <string name="settings_usb_diag">HARDWARE DIAGNOSTICS</string>
     <string name="settings_usb_status">USB-OTG Status: LINKED (115200 Baud)</string>
     <string name="settings_mesh_status">Mesh Routing: Dynamic Hop Active</string>
+    <!-- Comms / Messenger Style Strings -->
+    <string name="msg_header_title">LOCAL MESH COMMS</string>
+    <string name="msg_active_section">PEOPLE NEARBY ON MESH</string>
+    <string name="msg_conversations_section">CONVERSATIONS &amp; CHANNELS</string>
+    <string name="msg_public_broadcast_title">📢 PUBLIC MESH BROADCAST</string>
+    <string name="msg_public_broadcast_desc">Open radio net · All nodes in range</string>
+    <string name="msg_active_count">%1$d ONLINE</string>
+    <string name="msg_you_tag">YOU</string>
+    <string name="msg_hop_single">1 HOP</string>
+    <string name="msg_hops_multi">%1$d HOPS</string>
+    <string name="msg_search_hint">Filter mesh contacts…</string>
 </resources>

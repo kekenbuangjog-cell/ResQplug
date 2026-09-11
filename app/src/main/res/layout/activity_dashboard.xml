@@ -70,6 +70,23 @@
                     tools:text="85%" />
             </LinearLayout>
 
+            <!-- Exit Session Button -->
+            <TextView
+                android:id="@+id/btnExitSession"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:background="@drawable/pixel_card"
+                android:fontFamily="monospace"
+                android:paddingStart="8dp"
+                android:paddingTop="3dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="3dp"
+                android:text="[ ⏻ EXIT ]"
+                android:textColor="@color/alert_red"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
         </LinearLayout>
 
         <!-- ========== NODE ID BAR ========== -->
@@ -150,6 +167,39 @@
                     android:fontFamily="monospace"
                     android:text="Dashboard"
                     android:textColor="@color/accent_green"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <!-- SOS Hub Tab -->
+            <LinearLayout
+                android:id="@+id/nav_sos"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/pixel_nav_item"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
+
+                <TextView
+                    android:id="@+id/tvNavSosIcon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:text="🚨"
+                    android:textColor="@color/alert_red"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/tvNavSosText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:fontFamily="monospace"
+                    android:text="SOS Hub"
+                    android:textColor="@color/text_gray"
                     android:textSize="11sp" />
 
             </LinearLayout>

@@ -33,15 +33,40 @@
             android:background="@drawable/pixel_card"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tvSettingsNodeName"
+            <!-- Callsign Name & Edit Button Row -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:fontFamily="monospace"
-                android:textColor="@color/accent_green"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                tools:text="Callsign / Name: Juan" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvSettingsNodeName"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="monospace"
+                    android:textColor="@color/accent_green"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    tools:text="Callsign / Name: Juan" />
+
+                <TextView
+                    android:id="@+id/btnSettingsEditName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/pixel_card"
+                    android:fontFamily="monospace"
+                    android:paddingStart="8dp"
+                    android:paddingTop="3dp"
+                    android:paddingEnd="8dp"
+                    android:paddingBottom="3dp"
+                    android:text="[ ✏️ EDIT ]"
+                    android:textColor="@color/accent_green"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/tvSettingsDeviceId"
@@ -51,7 +76,7 @@
                 android:fontFamily="monospace"
                 android:textColor="@color/signal_cyan"
                 android:textSize="11sp"
-                tools:text="Dongle UID: RQP-SIM-5421" />
+                tools:text="Phone Node UID: RQP-NODE-8E549C" />
 
         </LinearLayout>
 
@@ -59,6 +84,135 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="16dp" />
+
+        <!-- ========== SECTION 2: ROLE & ACCESS CODE VERIFICATION ========== -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:text="ROLE &amp; CLEARANCE VERIFICATION"
+            android:textColor="@color/text_gray"
+            android:textSize="11sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/pixel_card"
+            android:orientation="vertical">
+
+            <!-- Active Role Display Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:text="ACTIVE ROLE: "
+                    android:textColor="@color/text_white"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvSettingsRoleBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/badge_role_citizen"
+                    android:fontFamily="monospace"
+                    android:textSize="8sp"
+                    android:textStyle="bold"
+                    tools:text="[ CITIZEN ]"
+                    tools:textColor="@color/accent_green" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvSettingsRoleDesc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:fontFamily="monospace"
+                android:textColor="@color/text_gray"
+                android:textSize="9sp"
+                tools:text="Standard citizen profile. Reports emergency &amp; status." />
+
+            <!-- Access Code Entry Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/etSettingsAccessCode"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/compose_input_bg"
+                    android:fontFamily="monospace"
+                    android:hint="ENTER ACCESS CODE"
+                    android:inputType="textCapCharacters"
+                    android:maxLines="1"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:textColor="@color/text_white"
+                    android:textColorHint="@color/text_gray"
+                    android:textSize="10sp" />
+
+                <Button
+                    android:id="@+id/btnSettingsVerifyCode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/btn_send"
+                    android:fontFamily="monospace"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="[ VERIFY ]"
+                    android:textColor="@color/bg_navy"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <!-- Reset to Citizen Button (Shown when Responder/Commander active) -->
+            <Button
+                android:id="@+id/btnSettingsResetRole"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/pixel_button_sos"
+                android:fontFamily="monospace"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="[ RESET TO CITIZEN ROLE ]"
+                android:textColor="@color/alert_red"
+                android:textSize="8sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <!-- Feedback Message -->
+            <TextView
+                android:id="@+id/tvSettingsRoleFeedback"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:fontFamily="monospace"
+                android:textSize="8sp"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:text="ACCESS GRANTED: COMMANDER ROLE ACTIVATED"
+                tools:textColor="@color/accent_green" />
+
+        </LinearLayout>
 
         <!-- ========== SECTION 2: LORA RF PARAMETERS ========== -->
         <TextView

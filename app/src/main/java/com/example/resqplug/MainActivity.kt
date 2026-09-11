@@ -8,6 +8,8 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
+import android.widget.Button
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
@@ -53,6 +55,7 @@ class MainActivity : AppCompatActivity() {
         val tvEmoticon = findViewById<TextView>(R.id.tvEmoticon)
         val tvSearchingStatus = findViewById<TextView>(R.id.tvSearchingStatus)
         val tvDeviceId = findViewById<TextView>(R.id.tvDeviceId)
+        val btnTestOverride = findViewById<Button>(R.id.btnTestOverride)
         val starfieldView = findViewById<StarfieldView>(R.id.starfieldView)
 
         // 8 FPS Stepped Dot Searching Animation
@@ -64,24 +67,13 @@ class MainActivity : AppCompatActivity() {
         // 8 FPS Starfield Twinkle
         startStarfieldTwinkle(starfieldView)
 
-        // Handle USB intent from manifest auto-launch
+        // Handle USB intent from manifest auto-launch (e.g. app launched by plugging in device)
         handleUsbIntent(intent)
 
-        // Auto-Simulate Connection after 2.5s if no physical device is detected
-        startAutoSimulationSearch(tvSearchingStatus, tvDeviceId)
-
-        // Manual tap to immediately simulate device detection (simulation mode skip)
-        tvSearchingStatus.setOnClickListener {
+        // Handle Test Override Code Button
+        btnTestOverride.setOnClickListener {
             if (!isDeviceConnected && !isConnecting) {
-                val simId = "RQP-SIM-${(1000..9999).random()}"
-                startConnectionSequence(simId, tvSearchingStatus, tvDeviceId)
-            }
-        }
-
-        tvDeviceId.setOnClickListener {
-            if (!isDeviceConnected && !isConnecting) {
-                val simId = "RQP-SIM-${(1000..9999).random()}"
-                startConnectionSequence(simId, tvSearchingStatus, tvDeviceId)
+                showTestOverrideDialog(tvSearchingStatus, tvDeviceId)
             }
         }
     }
@@ -96,7 +88,7 @@ class MainActivity : AppCompatActivity() {
         )
         registerReceiver(usbReceiver, usbReceiver!!.createIntentFilter())
 
-        // Scan for already-connected devices
+        // Scan for already-connected devices (e.g. device was already plugged in before app launched)
         scanForExistingDevices()
     }
 
@@ -108,16 +100,6 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleUsbIntent(intent)
-    }
-
-    private fun startAutoSimulationSearch(tvSearchingStatus: TextView, tvDeviceId: TextView) {
-        lifecycleScope.launch {
-            delay(2500L)
-            if (!isDeviceConnected && !isConnecting && !isFinishing) {
-                val simId = "RQP-SIM-${(1000..9999).random()}"
-                startConnectionSequence(simId, tvSearchingStatus, tvDeviceId)
-            }
-        }
     }
 
     private fun handleUsbIntent(intent: Intent?) {
@@ -142,21 +124,18 @@ class MainActivity : AppCompatActivity() {
         if (!usbHelper.isResQPlugDevice(device)) return
         if (isDeviceConnected || isConnecting) return
 
-        val deviceId = usbHelper.getUniqueDeviceId(device)
         val tvSearchingStatus = findViewById<TextView>(R.id.tvSearchingStatus)
         val tvDeviceId = findViewById<TextView>(R.id.tvDeviceId)
 
         runOnUiThread {
-            startConnectionSequence(deviceId, tvSearchingStatus, tvDeviceId)
+            startConnectionSequence(device, tvSearchingStatus, tvDeviceId)
         }
     }
 
     private fun onUsbDeviceDetached(device: UsbDevice) {
         if (!isDeviceConnected) return
-        if (connectedDeviceId.isNotEmpty() && !connectedDeviceId.startsWith("RQP-SIM-")) {
-            val detachedId = usbHelper.getUniqueDeviceId(device)
-            if (detachedId != connectedDeviceId) return
-        }
+        val detachedId = usbHelper.getUniqueDeviceId(device)
+        if (connectedDeviceId.isNotEmpty() && detachedId != connectedDeviceId) return
 
         val tvSearchingStatus = findViewById<TextView>(R.id.tvSearchingStatus)
         val tvDeviceId = findViewById<TextView>(R.id.tvDeviceId)
@@ -171,28 +150,50 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var phoneNodeId: String = ""
+    private var connectedHardwareName: String = "ESP32 Node"
+    private var connectedSerial: String = ""
+    private var connectedVendorId: String = ""
+    private var connectedProductId: String = ""
+
     private fun startConnectionSequence(
-        deviceId: String,
+        device: UsbDevice,
         tvStatus: TextView,
         tvDeviceId: TextView
     ) {
         isConnecting = true
-        connectedDeviceId = deviceId
+        phoneNodeId = usbHelper.getPhoneNodeId(this)
+        val hardwareName = usbHelper.getHardwareName(device)
+        val serialNumber = usbHelper.getSerialNumber(device)
+        val vendorIdHex = usbHelper.getVendorIdHex(device)
+        val productIdHex = usbHelper.getProductIdHex(device)
 
-        // Register device to Firebase
-        registerDeviceToFirebase(deviceId)
+        connectedDeviceId = phoneNodeId
+        connectedHardwareName = hardwareName
+        connectedSerial = serialNumber
+        connectedVendorId = vendorIdHex
+        connectedProductId = productIdHex
+
+        // Register rich hardware & phone telemetry to Firebase Firestore
+        registerDeviceToFirebase(
+            nodeId = phoneNodeId,
+            hardwareName = hardwareName,
+            serialNumber = serialNumber,
+            vendorId = vendorIdHex,
+            productId = productIdHex
+        )
 
         lifecycleScope.launch {
-            // Phase 1: Show "CONNECTING..." with amber text
-            tvStatus.text = getString(R.string.splash_connecting)
+            // Phase 1: Show detected dongle chip with amber text
+            tvStatus.text = "[ DETECTED: $hardwareName ]"
             tvStatus.setTextColor(getColor(R.color.alert_amber))
 
-            // Animate dots during connecting phase
+            // Animate 8-bit connection dots
             val connectDots = arrayOf(
-                "[ CONNECTING TO RESQPLUG DEVICE     ]",
-                "[ CONNECTING TO RESQPLUG DEVICE .   ]",
-                "[ CONNECTING TO RESQPLUG DEVICE . . ]",
-                "[ CONNECTING TO RESQPLUG DEVICE . . . ]"
+                "[ LINKING TO $hardwareName     ]",
+                "[ LINKING TO $hardwareName .   ]",
+                "[ LINKING TO $hardwareName . . ]",
+                "[ LINKING TO $hardwareName . . . ]"
             )
             var step = 0
             val totalTicks = (loadingDelayMs / frameDurationMs).toInt()
@@ -202,15 +203,107 @@ class MainActivity : AppCompatActivity() {
                 step++
             }
 
-            // Phase 2: Show "CONNECTED" with green text + device ID
+            // Phase 2: Show "LINKED" with green text + phone's permanent Node ID
             isDeviceConnected = true
             isConnecting = false
-            tvStatus.text = getString(R.string.splash_connected)
+            tvStatus.text = "[ ⚡ ESP32 HARDWARE LINKED ]"
             tvStatus.setTextColor(getColor(R.color.accent_green_alt))
-            tvDeviceId.text = getString(R.string.splash_device_id, deviceId)
+            tvDeviceId.text = "NODE ID: $phoneNodeId"
             tvDeviceId.visibility = View.VISIBLE
 
-            // Phase 3: Wait 1.5s then fade to dashboard
+            // Phase 3: Wait 1.5s then fade smoothly to dashboard
+            delay(1500L)
+            startFadeToDashboard()
+        }
+    }
+
+    private fun showTestOverrideDialog(tvStatus: TextView, tvDeviceId: TextView) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_test_override, null)
+        val etTestCode = dialogView.findViewById<EditText>(R.id.etTestCode)
+        val tvFeedback = dialogView.findViewById<TextView>(R.id.tvTestFeedback)
+        val btnCancel = dialogView.findViewById<Button>(R.id.btnCancelTest)
+        val btnSubmit = dialogView.findViewById<Button>(R.id.btnSubmitTest)
+
+        val dialog = android.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        btnCancel.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        btnSubmit.setOnClickListener {
+            val code = etTestCode.text.toString().trim()
+            if (code.equals("T3ST", ignoreCase = true)) {
+                dialog.dismiss()
+                startTestModeSequence(tvStatus, tvDeviceId)
+            } else {
+                tvFeedback.text = "[ ACCESS DENIED: INVALID CODE ]"
+                tvFeedback.visibility = View.VISIBLE
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun startTestModeSequence(
+        tvStatus: TextView,
+        tvDeviceId: TextView
+    ) {
+        isConnecting = true
+        phoneNodeId = usbHelper.getPhoneNodeId(this)
+        val testHardwareName = "ESP32 DevKit (T3ST Sim Mode)"
+        val testSerial = "T3ST-SIM-001"
+        val testVendorId = "0x303A"
+        val testProductId = "0x0002"
+
+        connectedDeviceId = phoneNodeId
+        connectedHardwareName = testHardwareName
+        connectedSerial = testSerial
+        connectedVendorId = testVendorId
+        connectedProductId = testProductId
+
+        // Register test node to Firebase Firestore
+        registerDeviceToFirebase(
+            nodeId = phoneNodeId,
+            hardwareName = testHardwareName,
+            serialNumber = testSerial,
+            vendorId = testVendorId,
+            productId = testProductId
+        )
+
+        lifecycleScope.launch {
+            // Phase 1: Show "TEST OVERRIDE..." with amber text
+            tvStatus.text = "[ TEST OVERRIDE: T3ST DETECTED ]"
+            tvStatus.setTextColor(getColor(R.color.alert_amber))
+
+            // Animate 8-bit connection dots
+            val connectDots = arrayOf(
+                "[ LINKING TO TEST SIMULATOR     ]",
+                "[ LINKING TO TEST SIMULATOR .   ]",
+                "[ LINKING TO TEST SIMULATOR . . ]",
+                "[ LINKING TO TEST SIMULATOR . . . ]"
+            )
+            var step = 0
+            val totalTicks = (loadingDelayMs / frameDurationMs).toInt()
+            for (tick in 0 until totalTicks) {
+                delay(frameDurationMs * 2)
+                tvStatus.text = connectDots[step % connectDots.size]
+                step++
+            }
+
+            // Phase 2: Show "LINKED" with green text + phone's permanent Node ID
+            isDeviceConnected = true
+            isConnecting = false
+            tvStatus.text = "[ ⚡ TEST OVERRIDE: T3ST LINKED ]"
+            tvStatus.setTextColor(getColor(R.color.accent_green_alt))
+            tvDeviceId.text = "NODE ID: $phoneNodeId"
+            tvDeviceId.visibility = View.VISIBLE
+
+            // Phase 3: Wait 1.5s then fade smoothly to dashboard
             delay(1500L)
             startFadeToDashboard()
         }
@@ -234,9 +327,15 @@ class MainActivity : AppCompatActivity() {
             }
             fadeOverlay.alpha = 1f
 
-            // Launch dashboard
-            val intent = Intent(this@MainActivity, DashboardActivity::class.java)
-            intent.putExtra("DEVICE_ID", connectedDeviceId)
+            // Launch dashboard with Phone Node ID and attached dongle telemetry
+            val intent = Intent(this@MainActivity, DashboardActivity::class.java).apply {
+                putExtra("NODE_ID", phoneNodeId)
+                putExtra("DEVICE_ID", phoneNodeId)
+                putExtra("HARDWARE_NAME", connectedHardwareName)
+                putExtra("DEVICE_SERIAL", connectedSerial)
+                putExtra("VENDOR_ID", connectedVendorId)
+                putExtra("PRODUCT_ID", connectedProductId)
+            }
             startActivity(intent)
             finish()
         }
@@ -283,20 +382,32 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun registerDeviceToFirebase(deviceId: String) {
+    private fun registerDeviceToFirebase(
+        nodeId: String,
+        hardwareName: String,
+        serialNumber: String,
+        vendorId: String,
+        productId: String
+    ) {
         val db = FirebaseFirestore.getInstance()
         val device = hashMapOf(
-            "deviceId" to deviceId,
+            "nodeId" to nodeId,
+            "deviceId" to nodeId,
+            "connectedDongle" to hardwareName,
+            "dongleSerial" to serialNumber,
+            "dongleVendorId" to vendorId,
+            "dongleProductId" to productId,
             "userName" to "",
+            "role" to "CITIZEN",
             "status" to "active",
             "platform" to "android",
-            "timestamp" to FieldValue.serverTimestamp(),
+            "connected_at" to FieldValue.serverTimestamp(),
             "last_seen" to FieldValue.serverTimestamp()
         )
         db.collection("active_devices")
-            .document(deviceId)
+            .document(nodeId)
             .set(device)
-            .addOnSuccessListener { Log.d("Firebase", "Registered device: $deviceId") }
+            .addOnSuccessListener { Log.d("Firebase", "Registered active node: $nodeId with dongle: $hardwareName") }
             .addOnFailureListener { Log.e("Firebase", "Registration failed", it) }
     }
 }

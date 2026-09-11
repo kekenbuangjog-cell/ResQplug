@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- 8-Bit Test Override Code Dialog -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/pixel_card"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:gravity="center"
+        android:text="[ ⌨️ HARDWARE TEST OVERRIDE ]"
+        android:textColor="@color/accent_green"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <!-- Subtitle -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:fontFamily="monospace"
+        android:gravity="center"
+        android:text="Enter test clearance key to bypass physical USB OTG requirement."
+        android:textColor="@color/text_gray"
+        android:textSize="9sp" />
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp"
+        android:background="@color/accent_green" />
+
+    <!-- Code Input -->
+    <EditText
+        android:id="@+id/etTestCode"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:background="@drawable/compose_input_bg"
+        android:fontFamily="monospace"
+        android:gravity="center"
+        android:hint="ENTER CODE (e.g. T3ST)"
+        android:imeOptions="actionDone"
+        android:inputType="textCapCharacters"
+        android:maxLines="1"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:textColor="@color/accent_green"
+        android:textColorHint="@color/text_gray"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <!-- Feedback Message -->
+    <TextView
+        android:id="@+id/tvTestFeedback"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:fontFamily="monospace"
+        android:gravity="center"
+        android:textColor="@color/alert_red"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        tools:text="[ ACCESS DENIED: INVALID CODE ]" />
+
+    <!-- Buttons Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancelTest"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/pixel_card"
+            android:fontFamily="monospace"
+            android:text="[ CANCEL ]"
+            android:textColor="@color/text_gray"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnSubmitTest"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/pixel_button_status"
+            android:fontFamily="monospace"
+            android:text="[ VERIFY ]"
+            android:textColor="@color/text_white"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</LinearLayout>

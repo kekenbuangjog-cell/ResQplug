@@ -43,6 +43,18 @@
                 android:textStyle="bold"
                 tools:text="Node-A"
                 tools:textColor="#3498DB" />
+
+            <TextView
+                android:id="@+id/tvReceivedRoleBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/badge_role_responder"
+                android:fontFamily="monospace"
+                android:textSize="6sp"
+                android:textStyle="bold"
+                tools:text="[ RESPONDER ]"
+                tools:textColor="@color/alert_amber" />
         </LinearLayout>
 
         <!-- Message text -->

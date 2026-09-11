@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Sent message bubble — right aligned, green border -->
+<!-- Sent message bubble - right aligned, green border -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -14,19 +14,39 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@drawable/bubble_sent"
-        android:orientation="vertical"
-        android:maxWidth="280dp">
+        android:maxWidth="280dp"
+        android:orientation="vertical">
 
-        <!-- Priority label -->
-        <TextView
-            android:id="@+id/tvPriority"
+        <!-- Header: Priority label + Role Badge -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:textSize="7sp"
-            android:textStyle="bold"
-            tools:text="[ SOS ]"
-            tools:textColor="@color/alert_red" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tvPriority"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textSize="7sp"
+                android:textStyle="bold"
+                tools:text="[ SOS ]"
+                tools:textColor="@color/alert_red" />
+
+            <TextView
+                android:id="@+id/tvSentRoleBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/badge_role_citizen"
+                android:fontFamily="monospace"
+                android:textSize="6sp"
+                android:textStyle="bold"
+                tools:text="[ CITIZEN ]"
+                tools:textColor="@color/accent_green" />
+
+        </LinearLayout>
 
         <!-- Message text -->
         <TextView
@@ -39,7 +59,7 @@
             android:textSize="8sp"
             tools:text="&quot;Need medical at Brgy 3&quot;" />
 
-        <!-- Footer: time + You + read receipt -->
+        <!-- Footer: time + Sender Name + read receipt -->
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -57,21 +77,22 @@
                 tools:text="12:35" />
 
             <TextView
+                android:id="@+id/tvSentSender"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
                 android:fontFamily="monospace"
-                android:text="YOU"
                 android:textColor="@color/accent_green"
                 android:textSize="6sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="JUAN (YOU)" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
                 android:fontFamily="monospace"
-                android:text="✓✓"
+                android:text="OK"
                 android:textColor="@color/accent_green"
                 android:textSize="6sp" />
         </LinearLayout>

@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Retro 8-Bit Official Bulletin Composer Dialog -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/pixel_card"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Title Header -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:gravity="center"
+        android:text="📢 COMPOSE OFFICIAL BULLETIN"
+        android:textColor="#9B59B6"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:fontFamily="monospace"
+        android:gravity="center"
+        android:text="Broadcasts live advisory to all connected mesh devices"
+        android:textColor="@color/text_gray"
+        android:textSize="8sp" />
+
+    <!-- Divider Bar -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
+        android:background="@color/border_dark" />
+
+    <!-- Quick Templates Label -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:text="1-TAP QUICK EMERGENCY TEMPLATES:"
+        android:textColor="@color/text_white"
+        android:textSize="8sp"
+        android:textStyle="bold" />
+
+    <!-- Templates Row 1 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnTplFlood"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:background="@drawable/pixel_status_box"
+            android:fontFamily="monospace"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="🌊 FLOOD ALERT"
+            android:textColor="@color/signal_cyan"
+            android:textSize="8sp" />
+
+        <Button
+            android:id="@+id/btnTplRelief"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/pixel_status_box"
+            android:fontFamily="monospace"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="🍲 RELIEF GOODS"
+            android:textColor="@color/accent_green"
+            android:textSize="8sp" />
+
+    </LinearLayout>
+
+    <!-- Templates Row 2 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnTplMedical"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_weight="1"
+            android:background="@drawable/pixel_status_box"
+            android:fontFamily="monospace"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="🏥 SHELTER &amp; MED"
+            android:textColor="@color/alert_amber"
+            android:textSize="8sp" />
+
+        <Button
+            android:id="@+id/btnTplUtility"
+            android:layout_width="0dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/pixel_status_box"
+            android:fontFamily="monospace"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="⚡ UTILITY RESTORE"
+            android:textColor="@color/text_white"
+            android:textSize="8sp" />
+
+    </LinearLayout>
+
+    <!-- Bulletin Custom Content Input -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:fontFamily="monospace"
+        android:text="BULLETIN ADVISORY MESSAGE:"
+        android:textColor="@color/text_gray"
+        android:textSize="8sp" />
+
+    <EditText
+        android:id="@+id/etBulletinContent"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_marginTop="6dp"
+        android:background="@drawable/compose_input_bg_bulletin"
+        android:fontFamily="monospace"
+        android:gravity="top|start"
+        android:hint="Type official announcement or select a template above..."
+        android:inputType="textMultiLine|textCapSentences"
+        android:padding="8dp"
+        android:textColor="@color/text_white"
+        android:textColorHint="@color/text_gray"
+        android:textSize="10sp" />
+
+    <!-- Action Buttons Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancelBulletin"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_weight="1"
+            android:background="@drawable/pixel_status_box"
+            android:fontFamily="monospace"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="[ CANCEL ]"
+            android:textColor="@color/text_gray"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnBroadcastBulletin"
+            android:layout_width="0dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="2"
+            android:background="@drawable/btn_send_bulletin"
+            android:fontFamily="monospace"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="[ 📢 BROADCAST ]"
+            android:textColor="@color/text_white"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</LinearLayout>
