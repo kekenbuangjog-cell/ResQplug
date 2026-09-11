@@ -137,7 +137,11 @@ class UsbDeviceHelper(context: Context) {
      * Generates a clean, consistent device identifier for Firebase and UI display.
      */
     fun getUniqueDeviceId(device: UsbDevice): String {
-        val serial = device.serialNumber?.trim()
+        val serial = try {
+            if (hasPermission(device)) device.serialNumber?.trim() else null
+        } catch (e: Exception) {
+            null
+        }
         if (!serial.isNullOrEmpty() && serial.length >= 4 && !serial.equals("null", ignoreCase = true)) {
             val cleanSerial = serial.replace(Regex("[^A-Za-z0-9]"), "").takeLast(6).uppercase()
             return "RQP-ESP32-$cleanSerial"
@@ -164,7 +168,11 @@ class UsbDeviceHelper(context: Context) {
             VENDOR_ID_FTDI -> "ESP32 DevKit (FTDI Bridge)"
             VENDOR_ID_PROLIFIC -> "ESP32 Node (PL2303 Bridge)"
             else -> {
-                val devName = device.productName ?: device.deviceName ?: "USB Serial"
+                val devName = try {
+                    if (hasPermission(device)) device.productName ?: device.deviceName else device.deviceName
+                } catch (e: Exception) {
+                    device.deviceName
+                }
                 "ESP32 Node ($devName)"
             }
         }
@@ -179,7 +187,11 @@ class UsbDeviceHelper(context: Context) {
     }
 
     fun getSerialNumber(device: UsbDevice): String {
-        val serial = device.serialNumber?.trim()
+        val serial = try {
+            if (hasPermission(device)) device.serialNumber?.trim() else null
+        } catch (e: Exception) {
+            null
+        }
         return if (!serial.isNullOrEmpty() && !serial.equals("null", ignoreCase = true)) {
             serial
         } else {

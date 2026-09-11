@@ -9,7 +9,6 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 class SimulationEngine(private val onTick: () -> Unit) {
@@ -93,14 +92,13 @@ class SimulationEngine(private val onTick: () -> Unit) {
     }
 
     fun tick() {
-        // Real-time network: No fake bot generation.
-        // Tick is preserved for frame-rate synchronization with UI animations.
-        onTick()
+        // Pure event-driven network: No polling or unthrottled UI thread invalidations.
     }
+
+    private var cachedDeviceDocuments = listOf<com.google.firebase.firestore.DocumentSnapshot>()
 
     private fun listenToActiveDevices() {
         devicesListener = db.collection("active_devices")
-            .whereEqualTo("status", "active")
             .addSnapshotListener { snapshots, error ->
                 if (error != null) {
                     Log.e("SimulationEngine", "Active devices listener error", error)
@@ -108,41 +106,64 @@ class SimulationEngine(private val onTick: () -> Unit) {
                 }
 
                 if (snapshots != null) {
-                    val peerList = mutableListOf<MeshNode>()
-                    for (doc in snapshots.documents) {
-                        val docNodeId = doc.getString("nodeId") ?: doc.id
-                        val docName = doc.getString("userName") ?: docNodeId.takeLast(6).uppercase()
-                        val docRoleStr = doc.getString("role") ?: "CITIZEN"
-                        val docRole = try { UserRole.valueOf(docRoleStr) } catch (e: Exception) { UserRole.CITIZEN }
-
-                        val isSelf = (docNodeId == userNode.id)
-                        val color = getNodeColorForRole(docRole)
-
-                        if (isSelf) {
-                            if (docName.isNotEmpty() && docName != "UNKNOWN") {
-                                userNode.name = docName
-                            }
-                            userNode.role = docRole
-                        } else {
-                            peerList.add(
-                                MeshNode(
-                                    id = docNodeId,
-                                    name = if (docName.isNotEmpty()) docName else docNodeId.takeLast(6).uppercase(),
-                                    color = color,
-                                    isOnline = true,
-                                    hops = 1,
-                                    isYou = false,
-                                    role = docRole
-                                )
-                            )
-                        }
-                    }
-
-                    nodes.clear()
-                    nodes.addAll(peerList)
-                    onTick()
+                    cachedDeviceDocuments = snapshots.documents
+                    processDeviceSnapshots()
                 }
             }
+    }
+
+    fun recheckFreshness() {
+        if (cachedDeviceDocuments.isNotEmpty()) {
+            processDeviceSnapshots()
+        }
+    }
+
+    private fun processDeviceSnapshots() {
+        val now = System.currentTimeMillis()
+        val staleThresholdMs = 90_000L // 90 seconds timeout
+        val peerList = mutableListOf<MeshNode>()
+
+        for (doc in cachedDeviceDocuments) {
+            val docNodeId = doc.getString("nodeId") ?: doc.id
+            val docName = doc.getString("userName") ?: docNodeId.takeLast(6).uppercase()
+            val docRoleStr = doc.getString("role") ?: "CITIZEN"
+            val docRole = try { UserRole.valueOf(docRoleStr) } catch (e: Exception) { UserRole.CITIZEN }
+            val status = doc.getString("status") ?: "inactive"
+
+            val lastSeenTs = doc.getTimestamp("last_seen")?.toDate()?.time
+            val isStale = if (lastSeenTs != null) {
+                (now - lastSeenTs) > staleThresholdMs
+            } else {
+                false
+            }
+
+            val isOnline = (status == "active") && !isStale
+            val isSelf = (docNodeId == userNode.id)
+            val color = getNodeColorForRole(docRole)
+
+            if (isSelf) {
+                if (docName.isNotEmpty() && docName != "UNKNOWN") {
+                    userNode.name = docName
+                }
+                userNode.role = docRole
+            } else {
+                peerList.add(
+                    MeshNode(
+                        id = docNodeId,
+                        name = if (docName.isNotEmpty()) docName else docNodeId.takeLast(6).uppercase(),
+                        color = color,
+                        isOnline = isOnline,
+                        hops = 1,
+                        isYou = false,
+                        role = docRole
+                    )
+                )
+            }
+        }
+
+        nodes.clear()
+        nodes.addAll(peerList)
+        onTick()
     }
 
     private fun listenToMeshMessages() {
@@ -512,7 +533,11 @@ class SimulationEngine(private val onTick: () -> Unit) {
 
     fun getNodes(): List<MeshNode> = nodes.toList()
 
-    fun getNodeCount(): Int = nodes.size + 1 // +1 for local user
+    fun getNodeCount(): Int {
+        val remoteOnline = nodes.count { it.isOnline }
+        val localOnline = if (userNode.isOnline) 1 else 0
+        return remoteOnline + localOnline
+    }
 
     fun getLastMessageForNode(senderName: String): ChatMessage? {
         return messages.filter {

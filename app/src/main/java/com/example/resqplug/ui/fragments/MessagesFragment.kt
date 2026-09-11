@@ -140,8 +140,7 @@ class MessagesFragment : Fragment() {
         currentChatRecipientName = null
         showChatDialog(
             title = "📡 PUBLIC MESH BROADCAST",
-            subtitle = "⚡ ONLINE • ALL NODES IN RANGE • LORA / REAL-TIME",
-            isBroadcast = true
+            subtitle = "⚡ ONLINE • ALL NODES IN RANGE • LORA / REAL-TIME"
         )
     }
 
@@ -155,12 +154,11 @@ class MessagesFragment : Fragment() {
         val hopTag = if (node.hops == 1) "1 HOP" else "${node.hops} HOPS"
         showChatDialog(
             title = node.name.uppercase(),
-            subtitle = "⚡ ONLINE • $hopTag • DIRECT ENCRYPTED LINK",
-            isBroadcast = false
+            subtitle = "⚡ ONLINE • $hopTag • DIRECT ENCRYPTED LINK"
         )
     }
 
-    private fun showChatDialog(title: String, subtitle: String, isBroadcast: Boolean) {
+    private fun showChatDialog(title: String, subtitle: String) {
         val dashActivity = activity as? DashboardActivity ?: return
         val dialog = Dialog(requireContext())
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)

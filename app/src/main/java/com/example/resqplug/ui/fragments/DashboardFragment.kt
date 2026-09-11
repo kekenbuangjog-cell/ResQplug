@@ -33,9 +33,6 @@ class DashboardFragment : Fragment() {
     private lateinit var btnBroadcastEvacOrder: Button
     private lateinit var btnComposeBulletin: Button
 
-    private var activeDevicesListener: ListenerRegistration? = null
-    private var liveActiveNodeCount: Int? = null
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -86,9 +83,6 @@ class DashboardFragment : Fragment() {
         btnComposeBulletin.setOnClickListener {
             showComposeBulletinDialog()
         }
-
-        // Attach live Firestore listener for active nodes
-        listenToActiveDevices()
 
         updateMeshHealth()
     }
@@ -143,27 +137,6 @@ class DashboardFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        activeDevicesListener?.remove()
-        activeDevicesListener = null
-    }
-
-    private fun listenToActiveDevices() {
-        activeDevicesListener = FirebaseFirestore.getInstance()
-            .collection("active_devices")
-            .whereEqualTo("status", "active")
-            .addSnapshotListener { snapshots, error ->
-                if (error != null) {
-                    Log.e("Firebase", "Listen failed for active devices", error)
-                    liveActiveNodeCount = null
-                    updateMeshHealth()
-                    return@addSnapshotListener
-                }
-
-                if (snapshots != null) {
-                    liveActiveNodeCount = snapshots.size()
-                    updateMeshHealth()
-                }
-            }
     }
 
     fun updateMeshHealth() {
@@ -191,8 +164,8 @@ class DashboardFragment : Fragment() {
             layoutCommanderControls.visibility = View.GONE
         }
 
-        // Use Firestore live active device count if available, otherwise local simulation
-        val count = liveActiveNodeCount ?: dashActivity.simulationEngine.getNodeCount()
+        // Use unified SimulationEngine node count (which filters for active & un-stale heartbeats)
+        val count = dashActivity.simulationEngine.getNodeCount()
         tvMeshActive.text = getString(R.string.dash_mesh_active, count)
         tvMeshNearest.text = getString(R.string.dash_mesh_nearest, -68, "Direct / 1 Hop")
         tvMeshFarthest.text = getString(R.string.dash_mesh_farthest, 3, 4.2f)

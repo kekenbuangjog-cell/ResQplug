@@ -26,6 +26,7 @@ import com.example.resqplug.ui.fragments.SettingsFragment
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -77,6 +78,8 @@ class DashboardActivity : AppCompatActivity() {
 
     private lateinit var usbHelper: com.example.resqplug.usb.UsbDeviceHelper
     private var usbReceiver: com.example.resqplug.usb.UsbConnectionReceiver? = null
+    private var heartbeatJob: Job? = null
+    private var freshnessTickerJob: Job? = null
 
     val simulationEngine = SimulationEngine {
         runOnUiThread {
@@ -178,12 +181,9 @@ class DashboardActivity : AppCompatActivity() {
         // Start real-time Firestore synchronization engine
         simulationEngine.start(nodeId, userName, userRole)
 
-        // Starfield background
+        // Starfield background (8 FPS retro twinkle)
         val starfieldView = findViewById<StarfieldView>(R.id.dashStarfield)
         startStarfieldTwinkle(starfieldView)
-
-        // Start simulation loop
-        startSimulationLoop()
     }
 
     override fun onStart() {
@@ -209,17 +209,79 @@ class DashboardActivity : AppCompatActivity() {
         if (isUsbConnected) {
             markDeviceActiveInFirestore()
         }
+
+        startHeartbeatLoop()
+        startFreshnessTicker()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (isUsbConnected) {
+            markDeviceActiveInFirestore()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Immediately notify network of pause/minimization
+        markDeviceInactiveInFirestore()
     }
 
     override fun onStop() {
         super.onStop()
         usbReceiver?.let { unregisterReceiver(it) }
+        stopHeartbeatLoop()
+        stopFreshnessTicker()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         simulationEngine.stop()
         markDeviceInactiveInFirestore()
+    }
+
+    private fun startHeartbeatLoop() {
+        stopHeartbeatLoop()
+        heartbeatJob = lifecycleScope.launch {
+            while (isActive) {
+                delay(30_000L) // 30-second heartbeat pulse
+                if (isUsbConnected && nodeId.isNotEmpty() && nodeId != "UNKNOWN") {
+                    val pulse = hashMapOf(
+                        "last_seen" to FieldValue.serverTimestamp(),
+                        "status" to "active"
+                    )
+                    FirebaseFirestore.getInstance().collection("active_devices")
+                        .document(nodeId)
+                        .set(pulse, SetOptions.merge())
+                        .addOnSuccessListener {
+                            Log.d("Heartbeat", "Heartbeat pulse sent for node: $nodeId")
+                        }
+                        .addOnFailureListener {
+                            Log.w("Heartbeat", "Heartbeat pulse failed", it)
+                        }
+                }
+            }
+        }
+    }
+
+    private fun stopHeartbeatLoop() {
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+    }
+
+    private fun startFreshnessTicker() {
+        stopFreshnessTicker()
+        freshnessTickerJob = lifecycleScope.launch {
+            while (isActive) {
+                delay(15_000L) // Check node freshness every 15s locally
+                simulationEngine.recheckFreshness()
+            }
+        }
+    }
+
+    private fun stopFreshnessTicker() {
+        freshnessTickerJob?.cancel()
+        freshnessTickerJob = null
     }
 
     private fun onUsbDeviceAttached(device: android.hardware.usb.UsbDevice) {
@@ -242,7 +304,7 @@ class DashboardActivity : AppCompatActivity() {
         }
     }
 
-    private fun onUsbDeviceDetached(device: android.hardware.usb.UsbDevice) {
+    private fun onUsbDeviceDetached(@Suppress("UNUSED_PARAMETER") device: android.hardware.usb.UsbDevice) {
         isUsbConnected = false
         runOnUiThread {
             updateRfStatusUI(isConnected = false)
@@ -525,15 +587,6 @@ class DashboardActivity : AppCompatActivity() {
             .set(updates, SetOptions.merge())
             .addOnSuccessListener { Log.d("Firebase", "User role updated to: ${role.name} for node $nodeId") }
             .addOnFailureListener { Log.e("Firebase", "Failed to update user role", it) }
-    }
-
-    private fun startSimulationLoop() {
-        lifecycleScope.launch {
-            while (isActive) {
-                delay(frameDurationMs)
-                simulationEngine.tick()
-            }
-        }
     }
 
     private fun startStarfieldTwinkle(starfieldView: StarfieldView) {
