@@ -75,6 +75,10 @@ class DashboardActivity : AppCompatActivity() {
         private set
     var isUsbConnected: Boolean = true
         private set
+    var transportMode: String = "USB"
+        private set
+    var dongleId: String = ""
+        private set
 
     private lateinit var usbHelper: com.example.resqplug.usb.UsbDeviceHelper
     private var usbReceiver: com.example.resqplug.usb.UsbConnectionReceiver? = null
@@ -146,6 +150,8 @@ class DashboardActivity : AppCompatActivity() {
         deviceSerial = intent.getStringExtra("DEVICE_SERIAL") ?: ""
         vendorId = intent.getStringExtra("VENDOR_ID") ?: ""
         productId = intent.getStringExtra("PRODUCT_ID") ?: ""
+        transportMode = intent.getStringExtra("TRANSPORT") ?: "USB"
+        dongleId = intent.getStringExtra("DONGLE_ID") ?: ""
 
         val shortId = nodeId.takeLast(6).uppercase()
         tvNodeId.text = getString(R.string.dash_node_id, "#$shortId")
@@ -305,26 +311,38 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     private fun onUsbDeviceDetached(@Suppress("UNUSED_PARAMETER") device: android.hardware.usb.UsbDevice) {
-        isUsbConnected = false
-        runOnUiThread {
-            updateRfStatusUI(isConnected = false)
-            markDeviceInactiveInFirestore()
-            Toast.makeText(this, "[ ⚠️ DONGLE UNPLUGGED - OFFLINE ]", Toast.LENGTH_SHORT).show()
+        if (transportMode != "BLUETOOTH") {
+            isUsbConnected = false
+            runOnUiThread {
+                updateRfStatusUI(isConnected = false)
+                markDeviceInactiveInFirestore()
+                Toast.makeText(this, "[ ⚠️ DONGLE UNPLUGGED - OFFLINE ]", Toast.LENGTH_SHORT).show()
 
-            val currentFrag = supportFragmentManager.findFragmentById(R.id.fragmentContainerView)
-            if (currentFrag is SettingsFragment) {
-                currentFrag.updateSettingsInfo()
+                val currentFrag = supportFragmentManager.findFragmentById(R.id.fragmentContainerView)
+                if (currentFrag is SettingsFragment) {
+                    currentFrag.updateSettingsInfo()
+                }
             }
         }
     }
 
     private fun updateRfStatusUI(isConnected: Boolean) {
         if (isConnected) {
-            tvRfStatus.text = "[ ⚡ ESP32 LINKED ]"
-            tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
+            if (transportMode == "BLUETOOTH") {
+                tvRfStatus.text = "[ 📶 BT LINK: $hardwareName ]"
+                tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.signal_cyan))
+            } else {
+                tvRfStatus.text = "[ ⚡ ESP32 LINKED ]"
+                tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
+            }
         } else {
-            tvRfStatus.text = "[ ⚠️ DONGLE UNPLUGGED ]"
-            tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.alert_red))
+            if (transportMode == "BLUETOOTH") {
+                tvRfStatus.text = "[ ⚠️ BT DISCONNECTED ]"
+                tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.alert_red))
+            } else {
+                tvRfStatus.text = "[ ⚠️ DONGLE UNPLUGGED ]"
+                tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.alert_red))
+            }
         }
     }
 
@@ -499,13 +517,18 @@ class DashboardActivity : AppCompatActivity() {
 
     private fun markDeviceActiveInFirestore() {
         if (nodeId.isEmpty() || nodeId == "UNKNOWN") return
+        val phoneModel = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
         val updates = hashMapOf(
             "nodeId" to nodeId,
             "deviceId" to nodeId,
+            "dongleId" to dongleId,
+            "transportMode" to transportMode,
             "connectedDongle" to hardwareName,
             "dongleSerial" to deviceSerial,
             "dongleVendorId" to vendorId,
             "dongleProductId" to productId,
+            "phoneManufacturer" to android.os.Build.MANUFACTURER,
+            "phoneModel" to phoneModel,
             "userName" to userName,
             "role" to userRole.name,
             "status" to "active",
@@ -515,7 +538,7 @@ class DashboardActivity : AppCompatActivity() {
         FirebaseFirestore.getInstance().collection("active_devices")
             .document(nodeId)
             .set(updates, SetOptions.merge())
-            .addOnSuccessListener { Log.d("Firebase", "Node $nodeId marked active in Firestore with dongle: $hardwareName") }
+            .addOnSuccessListener { Log.d("Firebase", "Node $nodeId marked active in Firestore with dongle: $dongleId ($transportMode)") }
             .addOnFailureListener { Log.e("Firebase", "Failed to mark active in Firestore", it) }
     }
 

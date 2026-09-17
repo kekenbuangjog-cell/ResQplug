@@ -1,9 +1,12 @@
 package com.example.resqplug
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -12,8 +15,11 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -23,6 +29,7 @@ import com.example.resqplug.usb.UsbConnectionReceiver
 import com.example.resqplug.usb.UsbDeviceHelper
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -33,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     private val loadingDelayMs = 2000L // 2s simulated connecting sequence
 
     private lateinit var usbHelper: UsbDeviceHelper
+    private lateinit var bluetoothHelper: com.example.resqplug.bluetooth.BluetoothRadioHelper
     private var usbReceiver: UsbConnectionReceiver? = null
     private var isDeviceConnected = false
     private var isConnecting = false
@@ -55,8 +63,11 @@ class MainActivity : AppCompatActivity() {
         val tvEmoticon = findViewById<TextView>(R.id.tvEmoticon)
         val tvSearchingStatus = findViewById<TextView>(R.id.tvSearchingStatus)
         val tvDeviceId = findViewById<TextView>(R.id.tvDeviceId)
+        val btnConnectBluetooth = findViewById<Button>(R.id.btnConnectBluetooth)
         val btnTestOverride = findViewById<Button>(R.id.btnTestOverride)
         val starfieldView = findViewById<StarfieldView>(R.id.starfieldView)
+
+        bluetoothHelper = com.example.resqplug.bluetooth.BluetoothRadioHelper(this)
 
         // 8 FPS Stepped Dot Searching Animation
         startSteppedSearchingAnimation(tvSearchingStatus)
@@ -69,6 +80,13 @@ class MainActivity : AppCompatActivity() {
 
         // Handle USB intent from manifest auto-launch (e.g. app launched by plugging in device)
         handleUsbIntent(intent)
+
+        // Handle Bluetooth Connection Button
+        btnConnectBluetooth.setOnClickListener {
+            if (!isDeviceConnected && !isConnecting) {
+                checkBluetoothPermissionsAndConnect(tvSearchingStatus, tvDeviceId)
+            }
+        }
 
         // Handle Test Override Code Button
         btnTestOverride.setOnClickListener {
@@ -151,10 +169,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var phoneNodeId: String = ""
+    private var connectedDongleId: String = "RQP-POD-01"
     private var connectedHardwareName: String = "ESP32 Node"
     private var connectedSerial: String = ""
     private var connectedVendorId: String = ""
     private var connectedProductId: String = ""
+    private var connectedTransportMode: String = "USB_OTG"
 
     private fun startConnectionSequence(
         device: UsbDevice,
@@ -167,20 +187,25 @@ class MainActivity : AppCompatActivity() {
         val serialNumber = usbHelper.getSerialNumber(device)
         val vendorIdHex = usbHelper.getVendorIdHex(device)
         val productIdHex = usbHelper.getProductIdHex(device)
+        val dongleId = usbHelper.getUniqueDeviceId(device)
 
         connectedDeviceId = phoneNodeId
+        connectedDongleId = dongleId
         connectedHardwareName = hardwareName
         connectedSerial = serialNumber
         connectedVendorId = vendorIdHex
         connectedProductId = productIdHex
+        connectedTransportMode = "USB_OTG"
 
         // Register rich hardware & phone telemetry to Firebase Firestore
         registerDeviceToFirebase(
             nodeId = phoneNodeId,
+            dongleId = dongleId,
             hardwareName = hardwareName,
             serialNumber = serialNumber,
             vendorId = vendorIdHex,
-            productId = productIdHex
+            productId = productIdHex,
+            transportMode = "USB_OTG"
         )
 
         lifecycleScope.launch {
@@ -249,6 +274,144 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    private val bluetoothPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions.entries.all { it.value }
+        val tvSearchingStatus = findViewById<TextView>(R.id.tvSearchingStatus)
+        val tvDeviceId = findViewById<TextView>(R.id.tvDeviceId)
+        if (granted) {
+            connectToResQPlugBluetooth(tvSearchingStatus, tvDeviceId)
+        } else {
+            Toast.makeText(this, "[ ⚠️ BLUETOOTH PERMISSION DENIED ]", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun checkBluetoothPermissionsAndConnect(tvStatus: TextView, tvDeviceId: TextView) {
+        if (!bluetoothHelper.isBluetoothSupported()) {
+            Toast.makeText(this, "[ ❌ BLUETOOTH NOT SUPPORTED ON THIS DEVICE ]", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (!bluetoothHelper.isBluetoothEnabled()) {
+            Toast.makeText(this, "[ ⚠️ PLEASE TURN ON BLUETOOTH IN SETTINGS ]", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val connectGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+            val scanGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+            if (!connectGranted || !scanGranted) {
+                bluetoothPermissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.BLUETOOTH_CONNECT,
+                        Manifest.permission.BLUETOOTH_SCAN
+                    )
+                )
+                return
+            }
+        } else {
+            val locGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            if (!locGranted) {
+                bluetoothPermissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    )
+                )
+                return
+            }
+        }
+
+        connectToResQPlugBluetooth(tvStatus, tvDeviceId)
+    }
+
+    private fun connectToResQPlugBluetooth(tvStatus: TextView, tvDeviceId: TextView) {
+        val device = bluetoothHelper.findPairedResQPlugDevice()
+        if (device == null) {
+            Toast.makeText(
+                this,
+                "[ ⚠️ 'ResQPlug-Radio-01' NOT FOUND IN PAIRED DEVICES.\nPLEASE PAIR IT IN ANDROID SETTINGS FIRST! ]",
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        isConnecting = true
+        phoneNodeId = usbHelper.getPhoneNodeId(this)
+        val btHardwareName = device.name ?: "ESP32 BT Pod"
+        val btAddress = device.address
+        val dongleId = if (btHardwareName.startsWith("ResQPlug-", ignoreCase = true)) {
+            btHardwareName.removePrefix("ResQPlug-").trim()
+        } else {
+            "RQP-BT-" + btAddress.replace(":", "").takeLast(6).uppercase()
+        }
+
+        connectedDeviceId = phoneNodeId
+        connectedDongleId = dongleId
+        connectedHardwareName = btHardwareName
+        connectedSerial = btAddress
+        connectedVendorId = "0xBT"
+        connectedProductId = "0x0001"
+        connectedTransportMode = "BLUETOOTH"
+
+        registerDeviceToFirebase(
+            nodeId = phoneNodeId,
+            dongleId = dongleId,
+            hardwareName = btHardwareName,
+            serialNumber = btAddress,
+            vendorId = "0xBT",
+            productId = "0x0001",
+            transportMode = "BLUETOOTH"
+        )
+
+        lifecycleScope.launch {
+            tvStatus.text = "[ CONNECTING VIA BLUETOOTH... ]"
+            tvStatus.setTextColor(getColor(R.color.signal_cyan))
+
+            val connectDots = arrayOf(
+                "[ LINKING TO $btHardwareName     ]",
+                "[ LINKING TO $btHardwareName .   ]",
+                "[ LINKING TO $btHardwareName . . ]",
+                "[ LINKING TO $btHardwareName . . . ]"
+            )
+            var step = 0
+            val totalTicks = (loadingDelayMs / frameDurationMs).toInt()
+            for (tick in 0 until totalTicks) {
+                delay(frameDurationMs * 2)
+                tvStatus.text = connectDots[step % connectDots.size]
+                step++
+            }
+
+            // Connect SPP socket
+            val connected = kotlinx.coroutines.Dispatchers.IO.let {
+                kotlinx.coroutines.withContext(it) {
+                    bluetoothHelper.connectToDevice(device)
+                }
+            }
+
+            if (connected) {
+                isDeviceConnected = true
+                isConnecting = false
+                tvStatus.text = "[ 📶 BLUETOOTH POD LINKED ]"
+                tvStatus.setTextColor(getColor(R.color.signal_cyan))
+                tvDeviceId.text = "NODE ID: $phoneNodeId"
+                tvDeviceId.visibility = View.VISIBLE
+
+                delay(1500L)
+                startFadeToDashboard()
+            } else {
+                isConnecting = false
+                tvStatus.text = "[ ❌ BLUETOOTH CONNECTION FAILED ]"
+                tvStatus.setTextColor(getColor(R.color.alert_red))
+                Toast.makeText(this@MainActivity, "Failed to connect to $btHardwareName. Ensure it is powered on!", Toast.LENGTH_SHORT).show()
+                delay(2000L)
+                tvStatus.text = getString(R.string.splash_searching)
+                tvStatus.setTextColor(getColor(R.color.accent_green))
+                startSteppedSearchingAnimation(tvStatus)
+            }
+        }
+    }
+
     private fun startTestModeSequence(
         tvStatus: TextView,
         tvDeviceId: TextView
@@ -259,20 +422,25 @@ class MainActivity : AppCompatActivity() {
         val testSerial = "T3ST-SIM-001"
         val testVendorId = "0x303A"
         val testProductId = "0x0002"
+        val testDongleId = "RQP-TEST-OVERRIDE"
 
         connectedDeviceId = phoneNodeId
+        connectedDongleId = testDongleId
         connectedHardwareName = testHardwareName
         connectedSerial = testSerial
         connectedVendorId = testVendorId
         connectedProductId = testProductId
+        connectedTransportMode = "TEST_OVERRIDE"
 
         // Register test node to Firebase Firestore
         registerDeviceToFirebase(
             nodeId = phoneNodeId,
+            dongleId = testDongleId,
             hardwareName = testHardwareName,
             serialNumber = testSerial,
             vendorId = testVendorId,
-            productId = testProductId
+            productId = testProductId,
+            transportMode = "TEST_OVERRIDE"
         )
 
         lifecycleScope.launch {
@@ -331,10 +499,12 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this@MainActivity, DashboardActivity::class.java).apply {
                 putExtra("NODE_ID", phoneNodeId)
                 putExtra("DEVICE_ID", phoneNodeId)
+                putExtra("DONGLE_ID", connectedDongleId)
                 putExtra("HARDWARE_NAME", connectedHardwareName)
                 putExtra("DEVICE_SERIAL", connectedSerial)
                 putExtra("VENDOR_ID", connectedVendorId)
                 putExtra("PRODUCT_ID", connectedProductId)
+                putExtra("TRANSPORT", connectedTransportMode)
             }
             startActivity(intent)
             finish()
@@ -384,19 +554,30 @@ class MainActivity : AppCompatActivity() {
 
     private fun registerDeviceToFirebase(
         nodeId: String,
+        dongleId: String,
         hardwareName: String,
         serialNumber: String,
         vendorId: String,
-        productId: String
+        productId: String,
+        transportMode: String
     ) {
         val db = FirebaseFirestore.getInstance()
-        val device = hashMapOf(
+        val phoneModel = "${Build.MANUFACTURER} ${Build.MODEL}"
+        val androidVersion = Build.VERSION.RELEASE ?: "Unknown"
+
+        // 1. Live Presence in 'active_devices' (keyed by phoneNodeId)
+        val liveDevice = hashMapOf(
             "nodeId" to nodeId,
             "deviceId" to nodeId,
+            "dongleId" to dongleId,
             "connectedDongle" to hardwareName,
             "dongleSerial" to serialNumber,
             "dongleVendorId" to vendorId,
             "dongleProductId" to productId,
+            "transportMode" to transportMode,
+            "phoneManufacturer" to Build.MANUFACTURER,
+            "phoneModel" to phoneModel,
+            "androidVersion" to androidVersion,
             "userName" to "",
             "role" to "CITIZEN",
             "status" to "active",
@@ -406,8 +587,32 @@ class MainActivity : AppCompatActivity() {
         )
         db.collection("active_devices")
             .document(nodeId)
-            .set(device)
-            .addOnSuccessListener { Log.d("Firebase", "Registered active node: $nodeId with dongle: $hardwareName") }
-            .addOnFailureListener { Log.e("Firebase", "Registration failed", it) }
+            .set(liveDevice, SetOptions.merge())
+            .addOnSuccessListener {
+                Log.d("Firebase", "Registered active node: $nodeId with dongle: $dongleId via $transportMode")
+            }
+            .addOnFailureListener { Log.e("Firebase", "Live node registration failed", it) }
+
+        // 2. Append-Only Historical Log in 'hardware_dongle_audit' (keyed by auto-ID)
+        val auditRecord = hashMapOf(
+            "dongleId" to dongleId,
+            "dongleSerial" to serialNumber,
+            "dongleVendorId" to vendorId,
+            "dongleProductId" to productId,
+            "phoneNodeId" to nodeId,
+            "phoneManufacturer" to Build.MANUFACTURER,
+            "phoneModel" to phoneModel,
+            "androidVersion" to androidVersion,
+            "transportMode" to transportMode,
+            "hardwareName" to hardwareName,
+            "connectionState" to "DETECTED_AND_LINKED",
+            "timestamp" to FieldValue.serverTimestamp()
+        )
+        db.collection("hardware_dongle_audit")
+            .add(auditRecord)
+            .addOnSuccessListener { docRef ->
+                Log.d("Firebase", "Audit log created [ID: ${docRef.id}] for Dongle: $dongleId on $phoneModel")
+            }
+            .addOnFailureListener { Log.w("Firebase", "Audit log write failed", it) }
     }
 }

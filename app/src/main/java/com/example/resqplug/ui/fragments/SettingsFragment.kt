@@ -154,14 +154,17 @@ class SettingsFragment : Fragment() {
         val dashActivity = activity as? DashboardActivity ?: return
         val name = if (dashActivity.userName.isNotEmpty()) dashActivity.userName else "Operator"
         tvSettingsNodeName.text = getString(R.string.settings_node_name, name)
-        tvSettingsDeviceId.text = "Phone Node UID: ${dashActivity.nodeId}"
+        val dongleTag = if (dashActivity.dongleId.isNotEmpty()) " | Dongle: ${dashActivity.dongleId}" else ""
+        tvSettingsDeviceId.text = "Phone UID: ${dashActivity.nodeId}$dongleTag"
 
-        // Update USB Hardware Diagnostics Status
+        // Update Hardware Diagnostics Status
         if (dashActivity.isUsbConnected) {
-            tvSettingsUsbStatus.text = "USB Dongle: ${dashActivity.hardwareName} [LINKED]"
+            val modeLabel = if (dashActivity.transportMode == "BLUETOOTH") "BT Pod" else "USB-OTG"
+            val dongleName = if (dashActivity.dongleId.isNotEmpty()) " (${dashActivity.dongleId})" else ""
+            tvSettingsUsbStatus.text = "$modeLabel: ${dashActivity.hardwareName}$dongleName [LINKED]"
             tvSettingsUsbStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_green))
         } else {
-            tvSettingsUsbStatus.text = "USB Dongle: [UNPLUGGED - OFFLINE]"
+            tvSettingsUsbStatus.text = "Hardware: [DISCONNECTED / OFFLINE]"
             tvSettingsUsbStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.alert_red))
         }
 
