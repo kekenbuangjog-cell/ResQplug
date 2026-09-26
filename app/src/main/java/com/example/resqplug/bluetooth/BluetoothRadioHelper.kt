@@ -42,7 +42,12 @@ class BluetoothRadioHelper(private val context: Context) {
             val paired = adapter.bondedDevices ?: return null
             for (device in paired) {
                 val name = device.name ?: ""
-                if (name.contains("ResQPlug", ignoreCase = true) || name.contains("Radio", ignoreCase = true)) {
+                if (name.contains("ResQPlug", ignoreCase = true) ||
+                    name.contains("Radio", ignoreCase = true) ||
+                    name.contains("Dongle", ignoreCase = true) ||
+                    name.contains("POD", ignoreCase = true) ||
+                    name.contains("ESP32", ignoreCase = true) ||
+                    name.contains("Node", ignoreCase = true)) {
                     Log.d(TAG, "Found paired ResQPlug Bluetooth device: $name (${device.address})")
                     return device
                 }
@@ -51,6 +56,18 @@ class BluetoothRadioHelper(private val context: Context) {
             Log.e(TAG, "Failed to read bonded devices", e)
         }
         return null
+    }
+
+    @SuppressLint("MissingPermission")
+    fun getBondedDevices(): List<BluetoothDevice> {
+        val adapter = bluetoothAdapter ?: return emptyList()
+        if (!adapter.isEnabled) return emptyList()
+        return try {
+            adapter.bondedDevices?.toList() ?: emptyList()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to read bonded devices", e)
+            emptyList()
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -84,6 +101,16 @@ class BluetoothRadioHelper(private val context: Context) {
     }
 
     fun isConnected(): Boolean = (socket?.isConnected == true)
+
+    fun getInputStream(): InputStream? = inputStream
+
+    fun getRemoteDevice(address: String): BluetoothDevice? {
+        return try {
+            bluetoothAdapter?.getRemoteDevice(address)
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     fun disconnect() {
         try {

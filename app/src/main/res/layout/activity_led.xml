@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_black"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Pixel Art Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <Button
+                android:id="@+id/btnBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/pixel_card"
+                android:fontFamily="monospace"
+                android:padding="0dp"
+                android:text="←"
+                android:textColor="@color/accent_green"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:text="ELDROID ACTIVITY 7.0"
+                    android:textColor="@color/accent_green"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:text="[ HARDWARE &amp; LED DASHBOARD // SCREEN 2 ]"
+                    android:textColor="@color/text_gray"
+                    android:textSize="9sp" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:visibility="gone"
+                android:indeterminateTint="@color/accent_green" />
+        </LinearLayout>
+
+        <!-- Card 1: Verified Firebase Account Session -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            android:background="@drawable/pixel_card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="12dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:text="VERIFIED FIREBASE ACCOUNT"
+                    android:textColor="@color/signal_cyan"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvUserEmail"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:fontFamily="monospace"
+                    android:text="operator@resqplug.local"
+                    android:textColor="@color/accent_green"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btnSignOut"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:backgroundTint="@color/border_dark"
+                android:fontFamily="monospace"
+                android:text="[ 🚪 LOG OUT ]"
+                android:textColor="@color/alert_amber"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Card 2: ESP32 Hardware Presence & LoRa Telemetry -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            android:background="@drawable/pixel_card"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:text="┌─[ ESP32 HARDWARE PRESENCE &amp; LORA RADIO ]"
+                android:textColor="@color/signal_cyan"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvDevicePresence"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/compose_input_bg"
+                    android:fontFamily="monospace"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="4dp"
+                    android:text="● ONLINE [ ▫ ]"
+                    android:textColor="@color/accent_green"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvLastSeen"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:fontFamily="monospace"
+                    android:gravity="end"
+                    android:text="Heartbeat: 2s ago"
+                    android:textColor="@color/text_gray"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="10dp"
+                android:background="@color/border_dark" />
+
+            <TextView
+                android:id="@+id/tvLoraStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:text="LoRa Radio: SX1278 (433.00 MHz) ACTIVE"
+                android:textColor="@color/accent_green"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/tvTransportMode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:fontFamily="monospace"
+                android:text="Transport : USB-OTG / Bluetooth SPP"
+                android:textColor="@color/text_gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- Card 3: External LED 8-Bit Pixel Feedback Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="18dp"
+            android:background="@drawable/pixel_card"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:text="┌─[ EXTERNAL LED TELEMETRY // GPIO 4 ]"
+                android:textColor="@color/signal_cyan"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <!-- Visual Bulb Icon -->
+            <TextView
+                android:id="@+id/tvLedBulbIcon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginVertical="10dp"
+                android:text="💡"
+                android:textSize="50sp" />
+
+            <!-- 8 FPS Stepped Voltage Charge Bar -->
+            <TextView
+                android:id="@+id/tvLedVoltageBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/compose_input_bg"
+                android:fontFamily="monospace"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:text="[ GPIO 4: ░░░░░░░░░░░░░░░░ ] 0.0V"
+                android:textColor="@color/alert_red"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <!-- Actual Hardware Status -->
+            <TextView
+                android:id="@+id/tvActualLedStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="monospace"
+                android:text="[ ACTUAL STATUS: LOW / OFF ]"
+                android:textColor="@color/alert_red"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvCommandRequested"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:fontFamily="monospace"
+                android:text="Requested Command: OFF"
+                android:textColor="@color/text_gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- Action Pixel Buttons -->
+        <Button
+            android:id="@+id/btnTurnOn"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="8dp"
+            android:backgroundTint="@color/accent_green"
+            android:fontFamily="monospace"
+            android:text="[ ⚡ TURN ON LED ]"
+            android:textColor="@color/bg_black"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnTurnOff"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginBottom="12dp"
+            android:backgroundTint="@color/alert_red"
+            android:fontFamily="monospace"
+            android:text="[ 🛑 TURN OFF LED ]"
+            android:textColor="@color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnSimulateOffline"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/pixel_card"
+            android:backgroundTint="@color/bg_navy"
+            android:fontFamily="monospace"
+            android:text="[ 📡 TEST OFFLINE (SIMULATE DISCONNECT) ]"
+            android:textColor="@color/alert_amber"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnChangeDevice"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:background="@drawable/pixel_card"
+            android:backgroundTint="@color/bg_navy"
+            android:fontFamily="monospace"
+            android:text="[ 🔄 RECONNECT / CHANGE DEVICE ]"
+            android:textColor="@color/signal_cyan"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+
+        <!-- 8-Bit Terminal Feedback Banner -->
+        <TextView
+            android:id="@+id/tvStatusMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/compose_input_bg"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:padding="8dp"
+            android:text="[ STATUS // READY FOR COMMAND ]"
+            android:textColor="@color/accent_green"
+            android:textSize="10sp" />
+
+    </LinearLayout>
+</ScrollView>

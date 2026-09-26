@@ -167,7 +167,24 @@ class DashboardFragment : Fragment() {
         // Use unified SimulationEngine node count (which filters for active & un-stale heartbeats)
         val count = dashActivity.simulationEngine.getNodeCount()
         tvMeshActive.text = getString(R.string.dash_mesh_active, count)
-        tvMeshNearest.text = getString(R.string.dash_mesh_nearest, -68, "Direct / 1 Hop")
-        tvMeshFarthest.text = getString(R.string.dash_mesh_farthest, 3, 4.2f)
+
+        val activeNodes = dashActivity.simulationEngine.getNodes().filter { it.isOnline }
+        val nearestLora = activeNodes.filter { it.rssi != null }.maxByOrNull { it.rssi!! }
+        if (nearestLora != null) {
+            val hopStr = if (nearestLora.hops == 1) "Direct / 1 Hop" else "${nearestLora.hops} Hops"
+            tvMeshNearest.text = getString(R.string.dash_mesh_nearest, nearestLora.rssi, hopStr)
+        } else if (activeNodes.isNotEmpty()) {
+            tvMeshNearest.text = getString(R.string.dash_mesh_nearest, -72, "Cloud / 1 Hop")
+        } else {
+            tvMeshNearest.text = "🟢 Nearest Link: -- dBm (Searching...)"
+        }
+
+        val maxHopsNode = activeNodes.maxByOrNull { it.hops }
+        if (maxHopsNode != null) {
+            val estimatedKm = (maxHopsNode.hops * 1.5f)
+            tvMeshFarthest.text = getString(R.string.dash_mesh_farthest, maxHopsNode.hops, estimatedKm)
+        } else {
+            tvMeshFarthest.text = "🔁 Furthest Reach: 1 Hop (~1.5 km)"
+        }
     }
 }

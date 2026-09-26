@@ -24,6 +24,7 @@ import androidx.core.content.IntentCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.resqplug.hardware.ResQPlugHardwareBridge
 import com.example.resqplug.ui.StarfieldView
 import com.example.resqplug.usb.UsbConnectionReceiver
 import com.example.resqplug.usb.UsbDeviceHelper
@@ -93,6 +94,13 @@ class MainActivity : AppCompatActivity() {
             if (!isDeviceConnected && !isConnecting) {
                 showTestOverrideDialog(tvSearchingStatus, tvDeviceId)
             }
+        }
+
+        // Handle Dedicated ELDROID Activity 7.0 Button (Screen 1: Authentication Gate)
+        val btnActivity7 = findViewById<Button>(R.id.btnActivity7)
+        btnActivity7?.setOnClickListener {
+            val intent = Intent(this, com.example.resqplug.activity7.Activity7AuthActivity::class.java)
+            startActivity(intent)
         }
     }
 
@@ -196,6 +204,12 @@ class MainActivity : AppCompatActivity() {
         connectedVendorId = vendorIdHex
         connectedProductId = productIdHex
         connectedTransportMode = "USB_OTG"
+        ResQPlugHardwareBridge.attachUsbSession(
+            name = hardwareName,
+            id = dongleId,
+            serial = serialNumber,
+            phoneNodeId = phoneNodeId
+        )
 
         // Register rich hardware & phone telemetry to Firebase Firestore
         registerDeviceToFirebase(
@@ -390,6 +404,13 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (connected) {
+                ResQPlugHardwareBridge.attachBluetoothSession(
+                    helper = bluetoothHelper,
+                    name = btHardwareName,
+                    id = dongleId,
+                    serial = btAddress,
+                    phoneNodeId = phoneNodeId
+                )
                 isDeviceConnected = true
                 isConnecting = false
                 tvStatus.text = "[ 📶 BLUETOOTH POD LINKED ]"
@@ -431,6 +452,7 @@ class MainActivity : AppCompatActivity() {
         connectedVendorId = testVendorId
         connectedProductId = testProductId
         connectedTransportMode = "TEST_OVERRIDE"
+        ResQPlugHardwareBridge.setSimulationMode(phoneNodeId)
 
         // Register test node to Firebase Firestore
         registerDeviceToFirebase(

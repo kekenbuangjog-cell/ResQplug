@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_black"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Top Header Navigation -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:layout_marginBottom="14dp">
+
+            <Button
+                android:id="@+id/btnConnBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/pixel_card"
+                android:fontFamily="monospace"
+                android:padding="0dp"
+                android:text="←"
+                android:textColor="@color/accent_green"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:text="ELDROID ACTIVITY 7.0"
+                    android:textColor="@color/accent_green"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:text="[ HARDWARE GATEWAY // SCREEN 1.5 ]"
+                    android:textColor="@color/text_gray"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/connProgressBar"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:indeterminateTint="@color/signal_cyan"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <!-- Operator Identity Badge -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/pixel_status_box"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp"
+            android:padding="10dp">
+
+            <TextView
+                android:id="@+id/tvOperatorEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textColor="@color/signal_cyan"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                tools:text="[ OPERATOR: operator@resqplug.local // VERIFIED ]" />
+
+        </LinearLayout>
+
+        <!-- Card 1: USB-OTG Hardware Link -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/pixel_card_green"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp"
+            android:padding="14dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:text="🔌 USB-OTG HARDWARE LINK"
+                android:textColor="@color/accent_green"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvUsbStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="12dp"
+                android:fontFamily="monospace"
+                android:textColor="@color/text_gray"
+                android:textSize="10sp"
+                android:text="○ STATUS: SCANNING USB HOST BUS..." />
+
+            <Button
+                android:id="@+id/btnConnectUsb"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:background="@drawable/pixel_card_green"
+                android:fontFamily="monospace"
+                android:text="[ 🔌 CONNECT VIA USB-OTG ]"
+                android:textColor="@color/accent_green"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <!-- Card 2: Bluetooth Wireless Pod Link -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/pixel_card"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp"
+            android:padding="14dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:text="📶 BLUETOOTH WIRELESS POD"
+                android:textColor="@color/signal_cyan"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvBtRadarSweep"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:fontFamily="monospace"
+                android:textColor="@color/signal_cyan"
+                android:textSize="10sp"
+                android:text="RADAR SWEEP [ ▫ ] AWAITING SCAN..." />
+
+            <!-- Recycler View for Discovered & Paired Pods -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvBluetoothDevices"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:layout_marginBottom="10dp" />
+
+            <Button
+                android:id="@+id/btnScanBluetooth"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:background="@drawable/pixel_card"
+                android:fontFamily="monospace"
+                android:text="[ 🔍 SCAN FOR BLUETOOTH PODS ]"
+                android:textColor="@color/signal_cyan"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <!-- Bottom Simulation / Test Override Button -->
+        <Button
+            android:id="@+id/btnTestOverride"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/pixel_status_box"
+            android:fontFamily="monospace"
+            android:text="[ ⚡ TEST OVERRIDE / SIMULATE LINK ]"
+            android:textColor="@color/accent_green"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+        <!-- Status Terminal Line -->
+        <TextView
+            android:id="@+id/tvTerminalStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:textColor="@color/text_gray"
+            android:textSize="9sp"
+            android:text="[ READY // SELECT TRANSPORT PROTOCOL ]" />
+
+    </LinearLayout>
+
+</ScrollView>

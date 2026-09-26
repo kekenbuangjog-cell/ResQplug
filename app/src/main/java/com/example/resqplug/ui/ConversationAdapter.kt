@@ -108,7 +108,13 @@ class ConversationAdapter(
                         bindPriority(lastMsg.priority)
                     } else {
                         tvTime.text = "--:--"
-                        tvLastMessage.text = if (node.isYou) "Your local device" else "Connected via ${node.hops} hop(s)"
+                        val linkDesc = when {
+                            node.isYou -> "Your local device"
+                            node.transport == "CLOUD" -> "Connected via Cloud Link"
+                            node.hops == 1 -> if (node.rssi != null) "Direct LoRa Link (${node.rssi} dBm)" else "Direct LoRa Link (1 Hop)"
+                            else -> "Mesh Multi-Hop (${node.hops} Hops)"
+                        }
+                        tvLastMessage.text = linkDesc
                         tvPriorityBadge.visibility = View.GONE
                     }
                 }

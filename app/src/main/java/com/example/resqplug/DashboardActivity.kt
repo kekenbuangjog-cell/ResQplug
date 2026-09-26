@@ -16,6 +16,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.example.resqplug.hardware.ResQPlugHardwareBridge
 import com.example.resqplug.simulation.ChatMessage
 import com.example.resqplug.simulation.Priority
 import com.example.resqplug.simulation.SimulationEngine
@@ -84,6 +85,21 @@ class DashboardActivity : AppCompatActivity() {
     private var usbReceiver: com.example.resqplug.usb.UsbConnectionReceiver? = null
     private var heartbeatJob: Job? = null
     private var freshnessTickerJob: Job? = null
+
+    fun isHardwareConnected(): Boolean {
+        return isUsbConnected || ResQPlugHardwareBridge.isConnected() || (transportMode == "TEST_OVERRIDE")
+    }
+
+    private val bridgeConnectionListener = { isConnected: Boolean, _: ResQPlugHardwareBridge.Transport ->
+        runOnUiThread {
+            updateRfStatusUI(isHardwareConnected())
+            if (isConnected) {
+                markDeviceActiveInFirestore()
+            } else if (!isUsbConnected && transportMode != "TEST_OVERRIDE") {
+                markDeviceInactiveInFirestore()
+            }
+        }
+    }
 
     val simulationEngine = SimulationEngine {
         runOnUiThread {
@@ -202,7 +218,7 @@ class DashboardActivity : AppCompatActivity() {
         )
         registerReceiver(usbReceiver, usbReceiver!!.createIntentFilter())
 
-        // Check if currently connected
+        // Check if currently connected via USB or inherited from Bridge
         val connectedDevice = usbHelper.findResQPlugDevice()
         isUsbConnected = (connectedDevice != null)
         if (connectedDevice != null) {
@@ -210,19 +226,31 @@ class DashboardActivity : AppCompatActivity() {
             deviceSerial = usbHelper.getSerialNumber(connectedDevice)
             vendorId = usbHelper.getVendorIdHex(connectedDevice)
             productId = usbHelper.getProductIdHex(connectedDevice)
+        } else if (ResQPlugHardwareBridge.isConnected()) {
+            if (hardwareName.isEmpty() || hardwareName == "ESP32 Node") {
+                hardwareName = ResQPlugHardwareBridge.hardwareName
+            }
+            if (dongleId.isEmpty()) {
+                dongleId = ResQPlugHardwareBridge.dongleId
+            }
+            if (deviceSerial.isEmpty()) {
+                deviceSerial = ResQPlugHardwareBridge.deviceSerial
+            }
         }
-        updateRfStatusUI(isUsbConnected)
-        if (isUsbConnected) {
+
+        updateRfStatusUI(isHardwareConnected())
+        if (isHardwareConnected()) {
             markDeviceActiveInFirestore()
         }
 
+        ResQPlugHardwareBridge.addConnectionStateListener(bridgeConnectionListener)
         startHeartbeatLoop()
         startFreshnessTicker()
     }
 
     override fun onResume() {
         super.onResume()
-        if (isUsbConnected) {
+        if (isHardwareConnected()) {
             markDeviceActiveInFirestore()
         }
     }
@@ -242,6 +270,7 @@ class DashboardActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        ResQPlugHardwareBridge.removeConnectionStateListener(bridgeConnectionListener)
         simulationEngine.stop()
         markDeviceInactiveInFirestore()
     }
@@ -251,7 +280,7 @@ class DashboardActivity : AppCompatActivity() {
         heartbeatJob = lifecycleScope.launch {
             while (isActive) {
                 delay(30_000L) // 30-second heartbeat pulse
-                if (isUsbConnected && nodeId.isNotEmpty() && nodeId != "UNKNOWN") {
+                if (isHardwareConnected() && nodeId.isNotEmpty() && nodeId != "UNKNOWN") {
                     val pulse = hashMapOf(
                         "last_seen" to FieldValue.serverTimestamp(),
                         "status" to "active"
@@ -328,15 +357,19 @@ class DashboardActivity : AppCompatActivity() {
 
     private fun updateRfStatusUI(isConnected: Boolean) {
         if (isConnected) {
-            if (transportMode == "BLUETOOTH") {
-                tvRfStatus.text = "[ 📶 BT LINK: $hardwareName ]"
+            if (transportMode == "TEST_OVERRIDE") {
+                tvRfStatus.text = "[ ⚙️ TEST SIMULATOR LINKED ]"
+                tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
+            } else if (transportMode == "BLUETOOTH" || ResQPlugHardwareBridge.activeTransport == ResQPlugHardwareBridge.Transport.BLUETOOTH) {
+                val name = hardwareName.ifEmpty { "ESP32 BT Pod" }
+                tvRfStatus.text = "[ 📶 BT LINK: $name ]"
                 tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.signal_cyan))
             } else {
                 tvRfStatus.text = "[ ⚡ ESP32 LINKED ]"
                 tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             }
         } else {
-            if (transportMode == "BLUETOOTH") {
+            if (transportMode == "BLUETOOTH" || ResQPlugHardwareBridge.activeTransport == ResQPlugHardwareBridge.Transport.BLUETOOTH) {
                 tvRfStatus.text = "[ ⚠️ BT DISCONNECTED ]"
                 tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.alert_red))
             } else {

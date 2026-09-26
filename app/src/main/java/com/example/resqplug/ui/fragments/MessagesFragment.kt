@@ -151,10 +151,14 @@ class MessagesFragment : Fragment() {
         }
         currentChatRecipientId = node.id
         currentChatRecipientName = node.name
-        val hopTag = if (node.hops == 1) "1 HOP" else "${node.hops} HOPS"
+        val hopTag = when {
+            node.transport == "CLOUD" -> "CLOUD LINK • FIREBASE"
+            node.hops == 1 -> if (node.rssi != null) "1 HOP (${node.rssi} dBm) • DIRECT LORA" else "1 HOP • DIRECT LORA"
+            else -> "${node.hops} HOPS • RELAYED VIA MESH"
+        }
         showChatDialog(
             title = node.name.uppercase(),
-            subtitle = "⚡ ONLINE • $hopTag • DIRECT ENCRYPTED LINK"
+            subtitle = "⚡ ONLINE • $hopTag"
         )
     }
 

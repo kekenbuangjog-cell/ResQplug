@@ -49,7 +49,13 @@ class ActiveContactAdapter(
             tvAvatar.setTextColor(node.color)
 
             tvName.text = node.name
-            tvHop.text = if (node.isYou) "YOU" else if (node.hops == 1) "1 HOP" else "${node.hops} HOPS"
+            val hopBadge = when {
+                node.isYou -> "YOU"
+                node.transport == "CLOUD" -> "CLOUD LINK"
+                node.hops == 1 -> if (node.rssi != null) "1 HOP (${node.rssi}dBm)" else "1 HOP"
+                else -> "${node.hops} HOPS (RELAY)"
+            }
+            tvHop.text = hopBadge
 
             vOnlineDot.setBackgroundResource(
                 if (node.isOnline) R.drawable.dot_online_green else R.drawable.dot_offline_gray

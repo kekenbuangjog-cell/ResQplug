@@ -7,5 +7,8 @@ data class MeshNode(
     val isOnline: Boolean = true,
     val hops: Int = 1,
     val isYou: Boolean = false,
-    var role: UserRole = UserRole.CITIZEN
+    var role: UserRole = UserRole.CITIZEN,
+    var rssi: Int? = null,
+    var transport: String = "LORA",
+    var lastSeenMs: Long = System.currentTimeMillis()
 )

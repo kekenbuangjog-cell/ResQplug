@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/pixel_card"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:text="[ 🔴 GMAIL ACCOUNT VERIFICATION ]"
+        android:textColor="@color/signal_cyan"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:fontFamily="monospace"
+        android:text="Enter your Gmail address to authorize session:"
+        android:textColor="@color/text_gray"
+        android:textSize="10sp" />
+
+    <EditText
+        android:id="@+id/etPixelGmailInput"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/compose_input_bg"
+        android:fontFamily="monospace"
+        android:hint="juan.delacruz@gmail.com"
+        android:inputType="textEmailAddress"
+        android:paddingHorizontal="10dp"
+        android:textColor="@color/text_white"
+        android:textColorHint="@color/text_gray"
+        android:textSize="12sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancelGmail"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:layout_marginEnd="8dp"
+            android:backgroundTint="@color/border_dark"
+            android:fontFamily="monospace"
+            android:text="[ CANCEL ]"
+            android:textColor="@color/text_gray"
+            android:textSize="10sp" />
+
+        <Button
+            android:id="@+id/btnConfirmGmail"
+            android:layout_width="wrap_content"
+            android:layout_height="38dp"
+            android:backgroundTint="@color/accent_green"
+            android:fontFamily="monospace"
+            android:text="[ ⚡ VERIFY GMAIL ]"
+            android:textColor="@color/bg_black"
+            android:textSize="10sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

@@ -2,6 +2,7 @@ package com.example.resqplug.simulation
 
 import android.graphics.Color
 import android.util.Log
+import com.example.resqplug.hardware.ResQPlugHardwareBridge
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -9,7 +10,9 @@ import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import java.text.SimpleDateFormat
+import java.util.Collections
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 class SimulationEngine(private val onTick: () -> Unit) {
 
@@ -18,6 +21,11 @@ class SimulationEngine(private val onTick: () -> Unit) {
     private val messages = mutableListOf<ChatMessage>()
     private val nodes = mutableListOf<MeshNode>()
     private val sosIncidents = mutableListOf<SosIncident>()
+
+    // Local-first radio peer directory and message deduplication
+    private val localLoraNodes = ConcurrentHashMap<String, MeshNode>()
+    private val seenMessageIds = Collections.synchronizedSet(HashSet<String>())
+    private val radioPacketListener = { packet: String -> handleInboundRadioPacket(packet) }
 
     private var devicesListener: ListenerRegistration? = null
     private var messagesListener: ListenerRegistration? = null
@@ -71,6 +79,7 @@ class SimulationEngine(private val onTick: () -> Unit) {
 
         stop() // Clean up existing listeners if re-starting
 
+        ResQPlugHardwareBridge.addPacketListener(radioPacketListener)
         listenToActiveDevices()
         listenToMeshMessages()
         listenToSosIncidents()
@@ -79,6 +88,7 @@ class SimulationEngine(private val onTick: () -> Unit) {
     }
 
     fun stop() {
+        ResQPlugHardwareBridge.removePacketListener(radioPacketListener)
         devicesListener?.remove()
         devicesListener = null
         messagesListener?.remove()
@@ -107,22 +117,21 @@ class SimulationEngine(private val onTick: () -> Unit) {
 
                 if (snapshots != null) {
                     cachedDeviceDocuments = snapshots.documents
-                    processDeviceSnapshots()
+                    rebuildMergedNodes()
                 }
             }
     }
 
     fun recheckFreshness() {
-        if (cachedDeviceDocuments.isNotEmpty()) {
-            processDeviceSnapshots()
-        }
+        rebuildMergedNodes()
     }
 
-    private fun processDeviceSnapshots() {
+    private fun rebuildMergedNodes() {
         val now = System.currentTimeMillis()
         val staleThresholdMs = 90_000L // 90 seconds timeout
-        val peerList = mutableListOf<MeshNode>()
+        val peerMap = mutableMapOf<String, MeshNode>()
 
+        // 1. Process Cloud Firestore snapshots first
         for (doc in cachedDeviceDocuments) {
             val docNodeId = doc.getString("nodeId") ?: doc.id
             val docName = doc.getString("userName") ?: docNodeId.takeLast(6).uppercase()
@@ -147,23 +156,211 @@ class SimulationEngine(private val onTick: () -> Unit) {
                 }
                 userNode.role = docRole
             } else {
-                peerList.add(
-                    MeshNode(
-                        id = docNodeId,
-                        name = if (docName.isNotEmpty()) docName else docNodeId.takeLast(6).uppercase(),
-                        color = color,
-                        isOnline = isOnline,
-                        hops = 1,
-                        isYou = false,
-                        role = docRole
-                    )
+                peerMap[docNodeId] = MeshNode(
+                    id = docNodeId,
+                    name = if (docName.isNotEmpty()) docName else docNodeId.takeLast(6).uppercase(),
+                    color = color,
+                    isOnline = isOnline,
+                    hops = 1,
+                    isYou = false,
+                    role = docRole,
+                    rssi = null,
+                    transport = "CLOUD",
+                    lastSeenMs = lastSeenTs ?: now
                 )
             }
         }
 
+        // 2. Overlay live LoRa peers (Local RF takes precedence for link metrics!)
+        for ((nodeId, loraNode) in localLoraNodes) {
+            if (nodeId == userNode.id) continue
+
+            val isStale = (now - loraNode.lastSeenMs) > staleThresholdMs
+            val online = !isStale
+
+            val existingCloud = peerMap[nodeId]
+            if (existingCloud != null) {
+                peerMap[nodeId] = existingCloud.copy(
+                    isOnline = online || existingCloud.isOnline,
+                    hops = loraNode.hops,
+                    rssi = loraNode.rssi,
+                    transport = if (online && existingCloud.isOnline) "HYBRID" else if (online) "LORA" else "CLOUD",
+                    lastSeenMs = maxOf(loraNode.lastSeenMs, existingCloud.lastSeenMs)
+                )
+            } else {
+                peerMap[nodeId] = loraNode.copy(isOnline = online)
+            }
+        }
+
         nodes.clear()
-        nodes.addAll(peerList)
+        nodes.addAll(peerMap.values)
         onTick()
+    }
+
+    private fun handleInboundRadioPacket(rawPacket: String) {
+        if (!rawPacket.startsWith("[RX:")) return
+
+        try {
+            var rssi: Int? = null
+            val rssiMatch = Regex("""RSSI:(-?\d+)""").find(rawPacket)
+            if (rssiMatch != null) {
+                rssi = rssiMatch.groupValues[1].toIntOrNull()
+            }
+
+            val dataIndex = rawPacket.indexOf("DATA:")
+            if (dataIndex < 0) return
+            val lastBracket = rawPacket.lastIndexOf(']')
+            if (lastBracket <= dataIndex + 5) return
+            val payload = rawPacket.substring(dataIndex + 5, lastBracket).trim().removePrefix("[").removeSuffix("]")
+
+            val parts = payload.split('|')
+            if (parts.isEmpty()) return
+
+            val tagAndId = parts[0]
+            val tag = tagAndId.substringBefore(':')
+            val id = tagAndId.substringAfter(':')
+
+            when (tag) {
+                "BCN" -> {
+                    // [BCN:ID|NAME|ROLE|HOPS]
+                    val name = if (parts.size > 1) parts[1] else id.takeLast(6).uppercase()
+                    val roleStr = if (parts.size > 2) parts[2] else "CITIZEN"
+                    val role = try { UserRole.valueOf(roleStr) } catch (e: Exception) { UserRole.CITIZEN }
+                    val hops = if (parts.size > 3) parts[3].toIntOrNull() ?: 1 else 1
+
+                    if (id != userNode.id && id.isNotEmpty()) {
+                        localLoraNodes[id] = MeshNode(
+                            id = id,
+                            name = name,
+                            color = getNodeColorForRole(role),
+                            isOnline = true,
+                            hops = hops,
+                            isYou = false,
+                            role = role,
+                            rssi = rssi,
+                            transport = "LORA",
+                            lastSeenMs = System.currentTimeMillis()
+                        )
+                        rebuildMergedNodes()
+                    }
+                }
+                "MSG" -> {
+                    // [MSG:ID|FROM_ID|FROM_NAME|PRIORITY|HOPS|TEXT]
+                    val msgId = id
+                    val senderId = if (parts.size > 1) parts[1] else ""
+                    val senderName = if (parts.size > 2) parts[2] else "Unknown"
+                    val prioStr = if (parts.size > 3) parts[3] else "STATUS"
+                    val priority = try { Priority.valueOf(prioStr) } catch (e: Exception) { Priority.STATUS }
+                    val hops = if (parts.size > 4) parts[4].toIntOrNull() ?: 1 else 1
+                    val text = if (parts.size > 5) parts.drop(5).joinToString("|") else ""
+
+                    if (senderId == userNode.id) return
+                    if (seenMessageIds.contains(msgId) || messages.any { it.id == msgId }) return
+                    seenMessageIds.add(msgId)
+
+                    val chatMsg = ChatMessage(
+                        id = msgId,
+                        sender = senderName,
+                        text = text,
+                        priority = priority,
+                        isSent = false,
+                        isSystem = false,
+                        timestamp = getCurrentTime(),
+                        nodeColor = getNodeColorForRole(UserRole.CITIZEN),
+                        role = UserRole.CITIZEN,
+                        senderId = senderId,
+                        channel = "BROADCAST",
+                        recipientId = null,
+                        recipientName = null
+                    )
+                    messages.add(chatMsg)
+
+                    if (senderId.isNotEmpty()) {
+                        localLoraNodes[senderId] = MeshNode(
+                            id = senderId,
+                            name = senderName,
+                            color = getNodeColorForRole(UserRole.CITIZEN),
+                            isOnline = true,
+                            hops = hops,
+                            isYou = false,
+                            role = UserRole.CITIZEN,
+                            rssi = rssi,
+                            transport = "LORA",
+                            lastSeenMs = System.currentTimeMillis()
+                        )
+                        rebuildMergedNodes()
+                    } else {
+                        onTick()
+                    }
+                }
+                "SOS" -> {
+                    // [SOS:ID|CITIZEN_ID|CITIZEN_NAME|HOPS|TEXT]
+                    val msgId = id
+                    val citizenId = if (parts.size > 1) parts[1] else ""
+                    val citizenName = if (parts.size > 2) parts[2] else "Evacuee in Distress"
+                    val hops = if (parts.size > 3) parts[3].toIntOrNull() ?: 1 else 1
+                    val text = if (parts.size > 4) parts.drop(4).joinToString("|") else ""
+
+                    if (citizenId == userNode.id) return
+                    if (seenMessageIds.contains(msgId) || messages.any { it.id == msgId }) return
+                    seenMessageIds.add(msgId)
+
+                    val incidentId = "sos_${citizenId.ifEmpty { msgId }}"
+                    val incident = SosIncident(
+                        id = incidentId,
+                        citizenName = citizenName,
+                        distressMessage = text,
+                        timestamp = getCurrentTime(),
+                        hops = hops,
+                        triageStatus = TriageStatus.OPEN,
+                        dispatchedResponder = null
+                    )
+                    val existingIdx = sosIncidents.indexOfFirst { it.id == incidentId }
+                    if (existingIdx >= 0) {
+                        sosIncidents[existingIdx] = incident
+                    } else {
+                        sosIncidents.add(0, incident)
+                    }
+
+                    val chatMsg = ChatMessage(
+                        id = msgId,
+                        sender = citizenName,
+                        text = "🚨 SOS DISTRESS: $text",
+                        priority = Priority.SOS,
+                        isSent = false,
+                        isSystem = false,
+                        timestamp = getCurrentTime(),
+                        nodeColor = Color.parseColor("#E74C3C"),
+                        role = UserRole.CITIZEN,
+                        senderId = citizenId,
+                        channel = "BROADCAST",
+                        recipientId = null,
+                        recipientName = null
+                    )
+                    messages.add(chatMsg)
+
+                    if (citizenId.isNotEmpty()) {
+                        localLoraNodes[citizenId] = MeshNode(
+                            id = citizenId,
+                            name = citizenName,
+                            color = Color.parseColor("#E74C3C"),
+                            isOnline = true,
+                            hops = hops,
+                            isYou = false,
+                            role = UserRole.CITIZEN,
+                            rssi = rssi,
+                            transport = "LORA",
+                            lastSeenMs = System.currentTimeMillis()
+                        )
+                        rebuildMergedNodes()
+                    } else {
+                        onTick()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("SimulationEngine", "Error handling inbound radio packet: $rawPacket", e)
+        }
     }
 
     private fun listenToMeshMessages() {
@@ -218,9 +415,12 @@ class SimulationEngine(private val onTick: () -> Unit) {
                             )
                         )
                     }
-
+                    val firestoreIds = msgList.map { it.id }.toSet()
+                    seenMessageIds.addAll(firestoreIds)
+                    val localOnly = messages.filter { !firestoreIds.contains(it.id) }
                     messages.clear()
                     messages.addAll(msgList)
+                    messages.addAll(localOnly)
                     onTick()
                 }
             }
@@ -333,8 +533,17 @@ class SimulationEngine(private val onTick: () -> Unit) {
         )
 
         // Optimistically add to local message list immediately
+        seenMessageIds.add(msgId)
         messages.add(localMsg)
         onTick()
+
+        // 0. Format and transmit over live LoRa radio via ResQPlugHardwareBridge
+        val loraPacket = if (priority == Priority.SOS) {
+            "[SOS:$msgId|${userNode.id}|$senderDisplayName|1|$text]"
+        } else {
+            "[MSG:$msgId|${userNode.id}|$senderDisplayName|${priority.name}|1|$text]"
+        }
+        ResQPlugHardwareBridge.sendLoraPacket(loraPacket)
 
         // 1. Write to Firestore mesh_messages
         val messageDoc = hashMapOf(

@@ -47,7 +47,9 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:34.18.0"))
+    // Firebase (BoM 32.8.0 is fully compatible with Kotlin 1.9.0)
+    implementation(platform("com.google.firebase:firebase-bom:32.8.0"))
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
 }
