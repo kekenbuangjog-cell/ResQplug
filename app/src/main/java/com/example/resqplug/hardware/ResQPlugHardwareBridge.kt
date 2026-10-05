@@ -38,6 +38,8 @@ object ResQPlugHardwareBridge {
         private set
     var nodeId: String = ""
         private set
+    var isLoraOnline: Boolean = true
+        private set
 
     private var bluetoothHelper: BluetoothRadioHelper? = null
     private var readerJob: Job? = null
@@ -197,6 +199,11 @@ object ResQPlugHardwareBridge {
     }
 
     private fun dispatchPacket(packet: String) {
+        if (packet.contains("|LORA:OFFLINE") || packet.contains("[LORA_STATUS:OFFLINE]")) {
+            isLoraOnline = false
+        } else if (packet.contains("|LORA:ONLINE_433MHZ") || packet.contains("[LORA_STATUS:ONLINE_433MHZ]")) {
+            isLoraOnline = true
+        }
         Log.d(TAG, "RX Packet: $packet")
         for (listener in packetListeners) {
             try {

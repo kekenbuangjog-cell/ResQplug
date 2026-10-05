@@ -90,6 +90,14 @@ class DashboardActivity : AppCompatActivity() {
         return isUsbConnected || ResQPlugHardwareBridge.isConnected() || (transportMode == "TEST_OVERRIDE")
     }
 
+    private val bridgePacketListener = { packet: String ->
+        if (packet.contains("|LORA:OFFLINE") || packet.contains("[LORA_STATUS:OFFLINE]")) {
+            runOnUiThread { updateRfStatusUI(isHardwareConnected()) }
+        } else if (packet.contains("|LORA:ONLINE_433MHZ") || packet.contains("[LORA_STATUS:ONLINE_433MHZ]")) {
+            runOnUiThread { updateRfStatusUI(isHardwareConnected()) }
+        }
+    }
+
     private val bridgeConnectionListener = { isConnected: Boolean, _: ResQPlugHardwareBridge.Transport ->
         runOnUiThread {
             updateRfStatusUI(isHardwareConnected())
@@ -244,6 +252,7 @@ class DashboardActivity : AppCompatActivity() {
         }
 
         ResQPlugHardwareBridge.addConnectionStateListener(bridgeConnectionListener)
+        ResQPlugHardwareBridge.addPacketListener(bridgePacketListener)
         startHeartbeatLoop()
         startFreshnessTicker()
     }
@@ -271,6 +280,7 @@ class DashboardActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         ResQPlugHardwareBridge.removeConnectionStateListener(bridgeConnectionListener)
+        ResQPlugHardwareBridge.removePacketListener(bridgePacketListener)
         simulationEngine.stop()
         markDeviceInactiveInFirestore()
     }
@@ -360,12 +370,14 @@ class DashboardActivity : AppCompatActivity() {
             if (transportMode == "TEST_OVERRIDE") {
                 tvRfStatus.text = "[ ⚙️ TEST SIMULATOR LINKED ]"
                 tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
+            } else if (!ResQPlugHardwareBridge.isLoraOnline) {
+                tvRfStatus.text = "[ ⚠️ LORA RADIO OFFLINE ]"
+                tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.alert_amber))
             } else if (transportMode == "BLUETOOTH" || ResQPlugHardwareBridge.activeTransport == ResQPlugHardwareBridge.Transport.BLUETOOTH) {
-                val name = hardwareName.ifEmpty { "ESP32 BT Pod" }
-                tvRfStatus.text = "[ 📶 BT LINK: $name ]"
-                tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.signal_cyan))
+                tvRfStatus.text = "[ 📶 BT + 📡 LORA ONLINE ]"
+                tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             } else {
-                tvRfStatus.text = "[ ⚡ ESP32 LINKED ]"
+                tvRfStatus.text = "[ ⚡ USB + 📡 LORA ONLINE ]"
                 tvRfStatus.setTextColor(ContextCompat.getColor(this, R.color.accent_green))
             }
         } else {

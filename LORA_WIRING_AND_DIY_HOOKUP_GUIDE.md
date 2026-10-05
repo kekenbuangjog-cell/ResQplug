@@ -42,9 +42,9 @@ Out of the 16 total pins on the Ra-02 breakout board, **only 8 wires are needed*
 | ⚫ **Black** | **Left [1] (GND)** | **`GND`** | Ground Reference | Common ground |
 | 🟡 **Yellow #1** | **Left [4] (RST)** | **`GPIO 14`** (D14) | Radio Reset | Active-low hardware reset |
 | 🟡 **Yellow #2** | **Left [5] (DIO0)** | **`GPIO 26`** (D26) | Packet Interrupt | Triggers on packet RX / TX completion |
-| 🔵 **Blue #1** | **Right [2] (NSS)** | **`GPIO 5`** (D5) | SPI Chip Select | Bus device selector |
-| 🟢 **Green #1** | **Right [3] (MOSI)**| **`GPIO 23`** (D23)| SPI Data In | Master Out $\rightarrow$ Slave In |
-| 🟢 **Green #2** | **Right [4] (MISO)**| **`GPIO 19`** (D19)| SPI Data Out | Master In $\leftarrow$ Slave Out |
+| 🔵 **Blue #1** | **Right [2] (NSS)** | **`GPIO 17`** (D17) | SPI Chip Select | ⚠️ **Use D17, NOT D5! GPIO5 is an ESP32 boot strapping pin — using it for NSS causes 0xFF on all SPI reads!** |
+| 🟢 **Green #1** | **Right [3] (MOSI)**| **`GPIO 23`** (D23)| SPI Data In | Master Out → Slave In |
+| 🟢 **Green #2** | **Right [4] (MISO)**| **`GPIO 19`** (D19)| SPI Data Out | Master In ← Slave Out |
 | 🔵 **Blue #2** | **Right [5] (SCK)** | **`GPIO 18`** (D18)| SPI Clock | Serial clock synchronization |
 
 ---

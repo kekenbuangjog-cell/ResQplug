@@ -56,6 +56,7 @@ bool isLoraOnline = false;
 // Autonomous LoRa Mesh Beacon & Relay Subsystem
 unsigned long lastBeaconMillis = 0;
 unsigned long nextBeaconInterval = 25000;
+unsigned long lastLoraRetryMillis = 0;
 #define SEEN_CACHE_SIZE 32
 String seenPacketIds[SEEN_CACHE_SIZE];
 int seenCacheIndex = 0;
@@ -77,27 +78,31 @@ void setup() {
   Serial.begin(115200);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
-  pinMode(EXTERNAL_LED_PIN, OUTPUT);
-  digitalWrite(EXTERNAL_LED_PIN, LOW);
+
+  // Allow 3.3V rail, serial link, and Ra-02 crystal oscillator to settle (matching resqplug_lora_test.ino)
+  delay(1500);
+
+  Serial.println("\n=========================================================");
+  Serial.println("   ⚡ ResQPlug Unified Dual-Transport + LIVE LORA v3.3    ");
+  Serial.println("=========================================================");
 
   // 2. Read and initialize hardware identity (eFuse MAC + Script ID)
   initIdentity();
 
-  // 3. Dynamic Bluetooth device name (e.g. "ResQPlug-POD-01")
+  // 3. Initialize Live Ai-Thinker Ra-02 LoRa Radio Subsystem FIRST (clean SPI bus before Bluetooth surge)
+  initLoRaRadio();
+
+  // 4. Settle time between LoRa initialization and Bluetooth RF startup
+  delay(500);
+
+  // 5. Dynamic Bluetooth device name (e.g. "ResQPlug-POD-01")
   btDeviceName = "ResQPlug-" + dongleId;
   SerialBT.begin(btDeviceName.c_str());
 
-  // 4. Initialize Live Ai-Thinker Ra-02 LoRa Radio Subsystem
-  initLoRaRadio();
-
-  // 5. Quick 3-pulse boot LED sequence
+  // 6. Quick 3-pulse boot LED sequence
   flashLed(3, 80);
 
-  // 6. Output boot banner to USB Serial
-  Serial.println();
-  Serial.println("=========================================================");
-  Serial.println("   ⚡ ResQPlug Unified Dual-Transport + LIVE LORA v3.3    ");
-  Serial.println("=========================================================");
+  // 7. Output boot summary to USB Serial
   Serial.print("   [ DONGLE ID   ]: "); Serial.println(dongleId);
   Serial.print("   [ SILICON MAC ]: "); Serial.println(siliconMac);
   Serial.print("   [ CHIP MODEL  ]: "); Serial.println(chipModel);
@@ -110,13 +115,30 @@ void setup() {
 }
 
 void loop() {
-  // 1. Update Connection LED Status
-  // If Bluetooth smartphone is actively connected, keep LED solid ON.
-  // Otherwise, pulse slowly (1 Hz) to indicate standing by for phone linking.
-  if (SerialBT.hasClient()) {
+  // 1. Update Connection & LoRa Health LED Status
+  if (!isLoraOnline) {
+    // LoRa OFFLINE Warning Pattern: Rapid double-blink (two 60ms flashes every 1000ms)
+    unsigned long cycle = millis() % 1000;
+    bool isDoubleBlink = (cycle < 60) || (cycle >= 140 && cycle < 200);
+    digitalWrite(LED_PIN, isDoubleBlink ? HIGH : LOW);
+  } else if (SerialBT.hasClient()) {
+    // LoRa ONLINE & Phone Bluetooth Linked: Solid ON
     digitalWrite(LED_PIN, HIGH);
   } else {
+    // LoRa ONLINE & Waiting for Phone Link: Slow 1 Hz pulse
     digitalWrite(LED_PIN, ((millis() / 500) % 2) ? HIGH : LOW);
+  }
+
+  // 2. Background Auto-Recovery for LoRa Radio (retry every 5s if offline)
+  if (!isLoraOnline && (millis() - lastLoraRetryMillis >= 5000)) {
+    lastLoraRetryMillis = millis();
+    initLoRaRadio();
+    if (isLoraOnline) {
+      Serial.println("[LORA]: 🎉 Recovered & Online via Background Auto-Recovery!");
+      if (SerialBT.hasClient()) {
+        SerialBT.println("[LORA_STATUS:ONLINE_433MHZ]");
+      }
+    }
   }
 
   // 2. Check for incoming data via USB-OTG Serial
@@ -281,12 +303,13 @@ void handleIncomingCommand(String cmd, bool fromBluetooth) {
 
 /**
  * Initializes the Ai-Thinker Ra-02 LoRa Radio module over SPI.
+ * Uses dual-mode probe: Standard SPI -> Software CS (-1) fallback with register logging.
  */
 void initLoRaRadio() {
-  // Start Hardware SPI bus
-  SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_SS);
+  Serial.println("[LORA]: Probing SX1278 on SPI Bus (SCK:18, MISO:19, MOSI:23, SS:5, RST:14)...");
 
-  // Set LoRa driver pins
+  // Mode 1: Standard SPI pins
+  SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_SS);
   LoRa.setPins(LORA_SS, LORA_RST, LORA_DIO0);
 
   // Hardware reset pulse
@@ -296,15 +319,56 @@ void initLoRaRadio() {
   digitalWrite(LORA_RST, HIGH);
   delay(50);
 
-  // Initialize at 433 MHz (Philippine Emergency Band)
+  // Direct SPI read of Version Register 0x42
+  digitalWrite(LORA_SS, LOW);
+  delayMicroseconds(10);
+  SPI.transfer(0x42 & 0x7F);
+  uint8_t ver1 = SPI.transfer(0x00);
+  digitalWrite(LORA_SS, HIGH);
+  Serial.print("[LORA]: Probe 1 (Standard CS) Reg 0x42 = 0x");
+  if (ver1 < 0x10) Serial.print("0");
+  Serial.println(ver1, HEX);
+
   if (LoRa.begin(433E6)) {
     LoRa.setTxPower(17);
     isLoraOnline = true;
-    Serial.println("[LORA]: SX1278 Radio Initialized Successfully at 433.00 MHz (+17 dBm)!");
-  } else {
-    isLoraOnline = false;
-    Serial.println("[LORA]: ⚠️ Radio Initialization Failed! Running in Fallback Mode.");
+    Serial.println("[LORA]: 🎉 SX1278 Radio Initialized Successfully at 433.00 MHz (+17 dBm)!");
+    return;
   }
+
+  // Mode 2: Software CS (-1 allows LoRa.h to fully control GPIO 5 without hardware CS lock)
+  Serial.println("[LORA]: Probe 1 failed. Trying Probe 2 (Software CS on GPIO 5)...");
+  SPI.end();
+  delay(50);
+  SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, -1);
+  pinMode(LORA_SS, OUTPUT);
+  digitalWrite(LORA_SS, HIGH);
+  LoRa.setPins(LORA_SS, LORA_RST, LORA_DIO0);
+
+  pinMode(LORA_RST, OUTPUT);
+  digitalWrite(LORA_RST, LOW);
+  delay(20);
+  digitalWrite(LORA_RST, HIGH);
+  delay(50);
+
+  digitalWrite(LORA_SS, LOW);
+  delayMicroseconds(10);
+  SPI.transfer(0x42 & 0x7F);
+  uint8_t ver2 = SPI.transfer(0x00);
+  digitalWrite(LORA_SS, HIGH);
+  Serial.print("[LORA]: Probe 2 (Software CS) Reg 0x42 = 0x");
+  if (ver2 < 0x10) Serial.print("0");
+  Serial.println(ver2, HEX);
+
+  if (LoRa.begin(433E6)) {
+    LoRa.setTxPower(17);
+    isLoraOnline = true;
+    Serial.println("[LORA]: 🎉 SX1278 Radio Initialized Successfully with Software CS at 433.00 MHz!");
+    return;
+  }
+
+  isLoraOnline = false;
+  Serial.println("[LORA]: ⚠️ Radio Initialization Failed! Running in Fallback Mode.");
 }
 
 /**
