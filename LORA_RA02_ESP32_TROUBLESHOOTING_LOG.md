@@ -284,4 +284,148 @@ Expected output when working:
 
 ---
 
+## 10. ✅ CORRECTED FINAL VERDICT — 2026-10-07
+
+> [!IMPORTANT]
+> **Root cause: the Ra-02's header pins were never soldered.**
+> They were pushed into the module's holes and held by friction only.
+> The signals stopped at that joint. The module was never dead.
+
+### The measured chain
+
+| Link | Evidence | Status |
+|:---|:---|:---:|
+| ESP32 pin → header pin | T1 swings, Test 1 `010`, Test 3 `001`/`001`, 3.20 V rail | ✅ |
+| **header pin → module pad** | **Test E: `1` `1` `1` `1` `1` + MISO `500` fluctuating** | 🔴 **THE GAP** |
+| module pad → silicon | Test D: `421` `709` `697` `697` `697` `697` | ✅ |
+
+Test D used **diode mode** on the bare pads with the pins removed. Every pad
+returned a healthy junction drop — the four SPI pads an identical `697`, the
+signature of four intact ESD diodes on one working die. **Silicon is fine.**
+
+Test E repeated the same measurement with the pins inserted, probing the top of
+the pin instead of the pad. Every signal pin read `1` (open) except MISO, which
+flickered around `500`. **No pin reaches its pad.**
+
+### Why MISO looked the way it did
+
+The `PD=0x00 / PU=0xFF` pull-up/pull-down signature proved MISO was floating —
+correct, but it did not say *where* the break was. MISO's `500 fluctuating`
+reading is the physical cause: a mostly-open joint with brief moments of
+contact, which is also exactly why the earlier 6-combo test printed mixed
+`0x00`/`0xFF` values.
+
+### What was eliminated, and how
+
+| Hypothesis | Status | Proof |
+|:---|:---:|:---|
+| Dead silicon | ❌ eliminated | Test D — every pad reaches the die |
+| Wrong pinout | ❌ eliminated | matches official Ai-Thinker datasheet (3 sources) |
+| Wrong wire positions | ❌ eliminated | the user's diagram was **copied from the module's printed labels** |
+| Orientation reversed | ❌ eliminated | U.FL socket sits at the pin-1 end |
+| Module GND not connected | ❌ eliminated | Test 1 = `010`; Test A GND pins → PCB = `000`/`001` |
+| Jumper wires / breadboard | ❌ eliminated | all eight ESP32 → header-pin paths proven |
+| NSS not delivered | ❌ eliminated | dips to 0 V on every live read |
+| **Unsoldered header pins** | 🔴 **CONFIRMED** | **Test E** |
+
+### Corrections to earlier steps in this log
+
+| Step | What it claimed | Correction |
+|:---|:---|:---|
+| **Step 9** | *"Two chips identical = NOT a dead chip → environmental/wiring issue"* | Right conclusion, unproven reasoning. Two chips *are* fine — but the shared fault was inside both **module assemblies**, not the wiring. |
+| **Step 10** | *"Mixed `0x00`/`0xFF` = intermittent contact on SPI wires"* | The wires are continuous. The intermittency was the **unsoldered pin-to-pad joint**. |
+| **Step 11** | Suspects: off-by-one row, split power rail, not straddling groove | All three disproven — continuity, orientation and labels all verified. |
+| **§5 #1** 🥇 | *"Breadboard intermittent contact — most likely"* | **Wrong location.** Breadboard contact was fine; the fault was at the module. |
+| **§8 #3/#5** | *"Replace jumper wires… press/wiggle each jumper"* | Repeated pressing of the module pins produced no change. **Friction cannot fix it — solder can.** |
+
+### Fix and remaining gate — ✅ ALL FOUR COMPLETED 2026-10-07
+
+1. ✅ **Soldered all 16 header pins** — first soldering job, joints copied from
+   the factory joints on the ESP32 board.
+2. ✅ **Test E after solder** — `345` `527` `533` `503` `502` `505`, GND `001`.
+   **6/6 connected** (was 0/6), no `1` opens, no `000` shorts.
+   Bridge check clean: all pairs `1`; 3.3V↔RESET `1263` = two ESD diodes
+   through the die, **not** a solder bridge.
+3. ✅ **T3 PASS** after reseating six breadboard wires one-conductor-per-hole —
+   `Reg 0x42 = 0x12`, **5/5 identical**, **7/7 rows `PD = float = PU = 0x12`**.
+4. ✅ **LoRa 0.8.0 installed → T6 PASS → T7 PASS.**
+
+> [!NOTE]
+> Standing lesson for this project: **a continuity test between two wires never
+> proves a soldered joint.** Every test up to Test E measured
+> *ESP32 → header pin* and stopped one link short of the chip. The missing link
+> needs a test point on the far side of the joint — here, the U.FL shell gave
+> us ground, and removing the pins entirely gave us the pads.
+
+---
+
+## 11. ✅ BRING-UP COMPLETE — 2026-10-07
+
+> [!IMPORTANT]
+> **The Ra-02 is alive and fully working at 433 MHz.**
+> **`LoRa.begin(433E6)` returned `true`. All five beacons transmitted.**
+
+### T3 — register reads
+
+```
+Reg 0x42 = 0x12
+5x: 0x12 0x12 0x12 0x12 0x12     Consistent : YES
+[1..7]  PD=0x12  float=0x12  PU=0x12   [PASS]
+[PASS] 0x12 - CHIP IS ALIVE AND RESPONDING
+```
+
+Zero `MARGINAL` rows, zero floating pairs. The six breadboard wires were
+reseeded **one conductor per hole** before this run — red and black were left
+alone (already firm). That reseat was what turned an inconsistent read into a
+perfect one: **the second and final fault was breadboard seating.**
+
+### T6 — library initialisation
+
+```
+NSS=17  RST=14  DIO0=26  SCK=18  MISO=19  MOSI=23
+Frequency : 433.0 MHz
+[2] LoRa.begin(433E6) ...  Result : true
+[3] TxPower=+18dBm  SF=7  BW=125kHz  CR=4/5  SyncWord=0x12
+VERDICT T6: PASS
+SUCCESS - Ra-02 online at 433.00 MHz.
+```
+
+### T7 — RF transmit
+
+```
+Freq=433.00MHz  TxPower=+18dBm  SF=7  BW=125kHz  CR=4/5  SyncWord=0x12  CRC=on
+Beacon 0..4 -> SENT
+VERDICT T7: PASS - all beacons transmitted.
+```
+
+### End-to-end status
+
+| Stage | Result |
+|:---|:---:|
+| Power rail at the module | ✅ 3.20 V |
+| ESP32 → header pin (8 paths) | ✅ T1 8/8 |
+| header pin → module pad | ✅ Test E 6/6 after soldering |
+| module pad → silicon | ✅ Test D `421`/`709`/`697`×4 |
+| Register reads over SPI | ✅ T3 `0x12`, 5/5, `PD=float=PU` |
+| Library accepts the chip | ✅ T6 `LoRa.begin(433E6)` = `true` |
+| RF output | ✅ T7 5/5 sent |
+| **Overall** | ✅ **BRING-UP COMPLETE** |
+
+### The two stacked faults
+
+| # | Fault | Found by | Fixed by |
+|:--:|:---|:---|:---|
+| 1 | **Header pins never soldered** — friction contact only | Test E (`1` `1` `1` `1` `1`) | soldering all 16 pins |
+| 2 | **Breadboard wires sharing holes / not fully seated** | T3 5× repeat inconsistent | reseating six wires one-per-hole |
+
+**Neither fault was the silicon, the pinout, the orientation, the ground, the
+jumper wires, the NSS pin, or the timing.** All of those were eliminated by
+measurement, one at a time.
+
+> [!NOTE]
+> The original question — *"Sonnet says dead, Gemini says alive"* — is
+> resolved. **The module was never dead. It was never soldered.**
+
+---
+
 *Part of the ResQPlug project hardware bring-up documentation.*

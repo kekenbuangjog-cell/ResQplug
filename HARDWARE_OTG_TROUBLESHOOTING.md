@@ -148,11 +148,11 @@ Phone (DFP / Host)                              ESP32 Dongle (UFP / Device)
 | :--- | :--- | :--- | :--- | :--- |
 | **VCC** | Power | **3V3** (3.3V Regulated) | **3V3** | **Strictly 3.3V!** |
 | **GND** | Ground | **GND** | **GND** | Common ground plane |
-| **NSS / CS**| SPI Chip Select | **GPIO 5** | **GPIO 10** | Radio slave select |
+| **NSS / CS**| SPI Chip Select | **GPIO 17** | **GPIO 10** | Radio slave select. ⚠️ Must **not** be GPIO 5 — that is an ESP32 boot strapping pin. |
 | **MOSI** | SPI Master Out | **GPIO 23** | **GPIO 11** | SPI Data Input to Ra-02 |
 | **MISO** | SPI Master In | **GPIO 19** | **GPIO 13** | SPI Data Output from Ra-02 |
 | **SCK** | SPI Clock | **GPIO 18** | **GPIO 12** | Bus clock line |
-| **DIO0** | Hardware IRQ | **GPIO 2** | **GPIO 4** | RxDone / TxDone interrupt signal |
+| **DIO0** | Hardware IRQ | **GPIO 26** | **GPIO 4** | RxDone / TxDone interrupt signal. ⚠️ Must **not** be GPIO 2 — strapping pin + onboard LED. |
 | **RST** | Reset | **GPIO 14** | **GPIO 5** | Active-low hardware reset |
 
 ---

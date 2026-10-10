@@ -37,7 +37,7 @@ bool externalLedState = false;
 #define LORA_SCK   18
 #define LORA_MISO  19
 #define LORA_MOSI  23
-#define LORA_SS    5
+#define LORA_SS    17
 #define LORA_RST   14
 #define LORA_DIO0  26
 
@@ -61,6 +61,18 @@ unsigned long lastLoraRetryMillis = 0;
 String seenPacketIds[SEEN_CACHE_SIZE];
 int seenCacheIndex = 0;
 
+// Real offline transmission queue. Holds up to TX_QUEUE_SIZE messages while the
+// radio is down; background auto-recovery in loop() flushes them when it returns.
+#define TX_QUEUE_SIZE 8
+String txQueue[TX_QUEUE_SIZE];
+int txQueueHead = 0;
+int txQueueCount = 0;
+
+// Deferred mesh relay. The old code blocked in delay() here, which stopped the
+// node listening to the air. Now the packet is parked and sent from loop().
+String pendingRelayPacket = "";
+unsigned long pendingRelayAt = 0;
+
 // Forward declarations
 void initIdentity();
 void initLoRaRadio();
@@ -72,12 +84,17 @@ void handleMeshRelay(const String &packet);
 String extractPacketId(const String &packet);
 void markPacketSeen(const String &id);
 bool hasSeenPacket(const String &id);
+bool enqueueTx(const String &payload);
+bool flushTxQueue();
+void servicePendingRelay();
 
 void setup() {
   // 1. Initialize Hardware USB-OTG UART at 115200 baud
   Serial.begin(115200);
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
+  pinMode(EXTERNAL_LED_PIN, OUTPUT);
+  digitalWrite(EXTERNAL_LED_PIN, LOW);
 
   // Allow 3.3V rail, serial link, and Ra-02 crystal oscillator to settle (matching resqplug_lora_test.ino)
   delay(1500);
@@ -141,6 +158,12 @@ void loop() {
     }
   }
 
+  // 2b. Send any message held while the radio was offline (one per pass, so a
+  // full queue never stalls the main loop)
+  if (isLoraOnline && txQueueCount > 0) {
+    flushTxQueue();
+  }
+
   // 2. Check for incoming data via USB-OTG Serial
   if (Serial.available() > 0) {
     String incoming = Serial.readStringUntil('\n');
@@ -193,6 +216,9 @@ void loop() {
       handleMeshRelay(incomingRadioPacket);
     }
   }
+
+  // 6. Transmit any relay whose 100 - 300 ms backoff has now elapsed
+  servicePendingRelay();
 
   delay(5);
 }
@@ -270,8 +296,14 @@ void handleIncomingCommand(String cmd, bool fromBluetooth) {
 
       ack = "[ACK:TX_LORA_SENT:" + payload + "]";
       flashLed(1, 80);
+    } else if (enqueueTx(payload)) {
+      // Radio offline — message is genuinely held until auto-recovery brings it back
+      ack = "[ACK:TX_QUEUED:" + payload + "]";
+      Serial.println("[TX_QUEUE]: held offline (" + String(txQueueCount) + "/" + String(TX_QUEUE_SIZE) + ")");
     } else {
-      ack = "[ACK:TX_QUEUED_SIMULATED:" + payload + "]";
+      // Queue full — oldest entry dropped to make room
+      ack = "[ACK:TX_QUEUE_FULL:" + payload + "]";
+      Serial.println("[TX_QUEUE]: full, oldest dropped");
     }
 
     // Echo confirmation to both interfaces
@@ -306,7 +338,7 @@ void handleIncomingCommand(String cmd, bool fromBluetooth) {
  * Uses dual-mode probe: Standard SPI -> Software CS (-1) fallback with register logging.
  */
 void initLoRaRadio() {
-  Serial.println("[LORA]: Probing SX1278 on SPI Bus (SCK:18, MISO:19, MOSI:23, SS:5, RST:14)...");
+  Serial.println("[LORA]: Probing SX1278 on SPI Bus (SCK:18, MISO:19, MOSI:23, SS:17, RST:14)...");
 
   // Mode 1: Standard SPI pins
   SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_SS);
@@ -336,8 +368,8 @@ void initLoRaRadio() {
     return;
   }
 
-  // Mode 2: Software CS (-1 allows LoRa.h to fully control GPIO 5 without hardware CS lock)
-  Serial.println("[LORA]: Probe 1 failed. Trying Probe 2 (Software CS on GPIO 5)...");
+  // Mode 2: Software CS (-1 allows LoRa.h to fully control GPIO 17 without hardware CS lock)
+  Serial.println("[LORA]: Probe 1 failed. Trying Probe 2 (Software CS on GPIO 17)...");
   SPI.end();
   delay(50);
   SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, -1);
@@ -486,7 +518,10 @@ void handleMeshRelay(const String &packet) {
   if (!isMsg && !isSos) return;
 
   String pktId = extractPacketId(packet);
-  if (pktId.length() == 0) return;
+  if (pktId.length() == 0) {
+    Serial.println("[RELAY_SKIP]: " + packet + " (no packet id)");
+    return;
+  }
 
   if (hasSeenPacket(pktId)) {
     return; // Already seen / relayed, suppress duplicates
@@ -516,28 +551,92 @@ void handleMeshRelay(const String &packet) {
     hopEnd = pipeIndices[3];
   }
 
-  if (hopStart >= 0 && hopEnd > hopStart) {
-    hopVal = inner.substring(hopStart, hopEnd).toInt();
-    if (hopVal < 1) hopVal = 1;
-
-    // Retransmit only if hop count is under max limit (3 hops)
-    if (hopVal < 3) {
-      int newHop = hopVal + 1;
-      String relayed = "[" + inner.substring(0, hopStart) + String(newHop) + inner.substring(hopEnd) + "]";
-
-      // Random backoff jitter (100 - 300 ms) to avoid collision with transmitting node
-      delay(random(100, 300));
-
-      LoRa.beginPacket();
-      LoRa.print(relayed);
-      LoRa.endPacket();
-
-      flashLed(2, 50);
-      Serial.println("[RELAY_TX]: " + relayed);
-      if (SerialBT.hasClient()) {
-        SerialBT.println("[RELAY_TX]: " + relayed);
-      }
-    }
+  if (hopStart < 0 || hopEnd <= hopStart) {
+    Serial.println("[RELAY_SKIP]: " + packet + " (no parseable hop field)");
+    return;
   }
+
+  hopVal = inner.substring(hopStart, hopEnd).toInt();
+  if (hopVal < 1) hopVal = 1;
+
+  if (hopVal >= 3) {
+    Serial.println("[RELAY_SKIP]: " + packet + " (hop " + String(hopVal) + " >= max 3)");
+    return;
+  }
+
+  int newHop = hopVal + 1;
+  String relayed = "[" + inner.substring(0, hopStart) + String(newHop) + inner.substring(hopEnd) + "]";
+
+  // Random backoff jitter (100 - 300 ms) to avoid collision with the transmitting
+  // node. Deferred rather than blocking, so this node keeps listening to the air
+  // while it waits its turn to retransmit.
+  pendingRelayPacket = relayed;
+  pendingRelayAt = millis() + (unsigned long)random(100, 300);
+  Serial.println("[RELAY_QUEUED]: " + relayed);
+}
+
+/**
+ * Parks a relaying node between 100-300 ms before it retransmits. Called from
+ * loop() so the node is never deaf to parsePacket() while waiting.
+ */
+void servicePendingRelay() {
+  if (pendingRelayPacket.length() == 0) return;
+  if (!isLoraOnline) return;
+  if ((long)(millis() - pendingRelayAt) < 0) return; // backoff not elapsed yet
+
+  String relayed = pendingRelayPacket;
+  pendingRelayPacket = "";
+
+  LoRa.beginPacket();
+  LoRa.print(relayed);
+  LoRa.endPacket();
+
+  flashLed(2, 50);
+  Serial.println("[RELAY_TX]: " + relayed);
+  if (SerialBT.hasClient()) {
+    SerialBT.println("[RELAY_TX]: " + relayed);
+  }
+}
+
+/**
+ * Holds a message while the radio is offline. Returns false if the queue is
+ * already full (the caller then reports the drop back to the phone).
+ */
+bool enqueueTx(const String &payload) {
+  bool wasFull = (txQueueCount >= TX_QUEUE_SIZE);
+  if (wasFull) {
+    // Full — overwrite the oldest slot to make room
+    txQueue[txQueueHead] = "";
+  } else {
+    txQueueCount++;
+  }
+  txQueue[txQueueHead] = payload;
+  txQueueHead = (txQueueHead + 1) % TX_QUEUE_SIZE;
+  return !wasFull;
+}
+
+/**
+ * Sends the oldest queued message once the radio is back. One entry per call so
+ * a full queue never blocks the main loop for long.
+ */
+bool flushTxQueue() {
+  if (!isLoraOnline) return false;
+  if (txQueueCount <= 0) return false;
+
+  int tail = (txQueueHead - txQueueCount + TX_QUEUE_SIZE) % TX_QUEUE_SIZE;
+  String payload = txQueue[tail];
+  txQueue[tail] = "";
+  txQueueCount--;
+
+  LoRa.beginPacket();
+  LoRa.print(payload);
+  LoRa.endPacket();
+  flashLed(1, 80);
+
+  Serial.println("[TX_QUEUE_FLUSH]: " + payload);
+  if (SerialBT.hasClient()) {
+    SerialBT.println("[ACK:TX_FLUSHED:" + payload + "]");
+  }
+  return true;
 }
 

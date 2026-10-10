@@ -8,7 +8,7 @@
  *    - Ra-02 Left [3] 3.3V  -> ESP32 3V3 (Strictly 3.3V!)
  *    - Ra-02 Left [4] RST   -> ESP32 GPIO 14
  *    - Ra-02 Left [5] DIO0  -> ESP32 GPIO 26
- *    - Ra-02 Right [2] NSS  -> ESP32 GPIO 5
+ *    - Ra-02 Right [2] NSS  -> ESP32 GPIO 17
  *    - Ra-02 Right [3] MOSI -> ESP32 GPIO 23
  *    - Ra-02 Right [4] MISO -> ESP32 GPIO 19
  *    - Ra-02 Right [5] SCK  -> ESP32 GPIO 18
@@ -21,7 +21,7 @@
 #define PIN_SCK   18
 #define PIN_MISO  19
 #define PIN_MOSI  23
-#define PIN_NSS    5
+#define PIN_NSS   17
 #define PIN_RST   14
 #define PIN_DIO0  26
 
@@ -75,7 +75,7 @@ void setup() {
   digitalWrite(PIN_RST, HIGH);
   delay(50); // 50ms crystal stabilization
 
-  // Start Hardware SPI once without hardware CS takeover (-1 allows manual digitalWrite on GPIO 5)
+  // Start Hardware SPI once without hardware CS takeover (-1 allows manual digitalWrite on GPIO 17)
   SPI.begin(PIN_SCK, PIN_MISO, PIN_MOSI, -1);
 
   // Ensure NSS is set as output under our software control

@@ -23,7 +23,7 @@ Out of the 16 total pins on the Ra-02 breakout board, **only 8 wires are needed*
        (LEFT HEADER)                                 (RIGHT HEADER)
   --------------------------                    --------------------------
   [1] GND   ---> ESP32 GND                      [1] GND  (Skip)
-  [2] GND   (Skip)                              [2] NSS  ---> ESP32 GPIO 5
+   [2] GND   (Skip)                              [2] NSS  ---> ESP32 GPIO 17
   [3] 3.3V  ---> ESP32 3V3                      [3] MOSI ---> ESP32 GPIO 23
   [4] RST   ---> ESP32 GPIO 14                  [4] MISO ---> ESP32 GPIO 19
   [5] DIO0  ---> ESP32 GPIO 26                  [5] SCK  ---> ESP32 GPIO 18
@@ -33,6 +33,27 @@ Out of the 16 total pins on the Ra-02 breakout board, **only 8 wires are needed*
  
                     [ C2 ]  [ C1 ]  (Decoupling Capacitors)
 ```
+
+### About `[C1] [C2]` — the decoupling capacitors
+
+The diagram above draws them but never defines them. They go **across the power
+rail, at the Ra-02 end**:
+
+| | Value | Placement | Polarity |
+| :---: | :--- | :--- | :--- |
+| **C1** | **100 nF** ceramic | as close to the Ra-02 `3.3V` / `GND` pins as you can get | none |
+| **C2** | **100 µF** electrolytic | across the same two pins, beside C1 | ⚠️ **yes** — short/negative leg → `GND` |
+
+**Why they matter:** the SX1278 draws a sharp current spike every time the
+power amplifier switches during transmit. Breadboard clips and long jumper
+wires have enough inductance that the 3.3 V rail can dip mid-packet — and a
+dip on the power rail corrupts SPI reads, which looks *exactly* like a wiring
+fault. C1 absorbs the high-frequency spike; C2 holds the rail up through the
+pulse.
+
+> They are **not required to pass the bring-up tests** — T3, T6 and T7 all pass
+> without them. Fit them before you rely on range, transmit power, or run the
+> radio next to a noisy supply.
 
 ### Complete 8-Wire Wiring Schedule
 
@@ -112,7 +133,7 @@ Once all 8 wires are connected, you can verify that the ESP32 can talk to the Ra
 #define LORA_SCK   18
 #define LORA_MISO  19
 #define LORA_MOSI  23
-#define LORA_SS    5
+#define LORA_SS    17
 #define LORA_RST   14
 #define LORA_DIO0  26
 

@@ -37,8 +37,8 @@
 * We choose **`GPIO 4`** (labeled `D4` or `4` on your ESP32).
 * **Why GPIO 4?**
   * It is a safe general-purpose output pin.
-  * It is **not** a strapping pin (unlike GPIO 0, 2, 12, 15 which can prevent ESP32 from booting).
-  * It **does not conflict** with any of your LoRa pins (`GPIO 5, 14, 18, 19, 23, 26`).
+  * It is **not** a strapping pin (unlike GPIO 0, 2, 5, 12, 15 which can prevent ESP32 from booting).
+  * It **does not conflict** with any of your LoRa pins (`GPIO 17, 14, 18, 19, 23, 26`).
 
 ### Circuit Diagram
 
